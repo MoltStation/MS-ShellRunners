@@ -1,0 +1,728 @@
+.shellrunners-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px 64px;
+  background:
+    radial-gradient(circle at top, rgba(249, 115, 22, 0.18), transparent 50%),
+    radial-gradient(circle at 20% 40%, rgba(14, 116, 144, 0.25), transparent 45%),
+    #0d1117;
+  color: #e5e7eb;
+  font-family: "Sora", "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.shellrunners-content {
+  width: min(960px, 100%);
+  display: grid;
+  gap: 24px;
+}
+
+.shellrunners-card {
+  background: linear-gradient(160deg, rgba(17, 24, 39, 0.95), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  border-radius: 18px;
+  padding: 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+}
+
+.shellrunners-brand {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.shellrunners-title {
+  margin: 0 0 12px;
+  font-size: 32px;
+}
+
+.shellrunners-subtitle {
+  margin: 0 0 24px;
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+.shellrunners-promo {
+  margin: -6px auto 24px;
+  max-width: 62ch;
+  text-align: center;
+  color: rgba(229, 231, 235, 0.92);
+  line-height: 1.65;
+  font-size: 14px;
+}
+
+.shellrunners-promo p {
+  margin: 0 0 12px;
+}
+
+.shellrunners-promo p:last-child {
+  margin-bottom: 0;
+}
+
+.shellrunners-details {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.shellrunners-detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(31, 41, 55, 0.7);
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.shellrunners-detail strong {
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+.shellrunners-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.shellrunners-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: #1f2937;
+  color: #e5e7eb;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.shellrunners-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #273548;
+}
+
+.shellrunners-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.shellrunners-btn:disabled:hover {
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #1f2937;
+}
+
+.shellrunners-btn.primary:disabled {
+  background: rgba(245, 158, 11, 0.25);
+  color: rgba(254, 243, 199, 0.95);
+  box-shadow: none;
+}
+
+.shellrunners-btn.primary:disabled:hover {
+  background: rgba(245, 158, 11, 0.25);
+}
+
+.molt-market-btn[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+}
+
+.shellrunners-btn.primary {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #0b0f14;
+  font-weight: 600;
+}
+
+.shellrunners-btn.ghost {
+  background: transparent;
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fef3c7;
+}
+
+.shellrunners-hint {
+  margin-top: 16px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.shellrunners-section-title {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #9ca3af;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .shellrunners-detail {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .shellrunners-title {
+    font-size: 26px;
+  }
+}
+
+/* MoltStation Marketplace (minimal, centered, matches ShellRunners page) */
+.molt-market-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px 64px;
+  background:
+    radial-gradient(circle at top, rgba(249, 115, 22, 0.18), transparent 50%),
+    radial-gradient(circle at 20% 40%, rgba(14, 116, 144, 0.25), transparent 45%),
+    #0d1117;
+  color: #e5e7eb;
+  font-family: "Sora", "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.molt-market-card {
+  width: min(1100px, 100%);
+  background: linear-gradient(160deg, rgba(17, 24, 39, 0.95), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  border-radius: 18px;
+  padding: 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+}
+
+.molt-market-brand {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 10px;
+}
+
+.molt-market-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.molt-market-title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.molt-market-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.molt-market-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(31, 41, 55, 0.25);
+  color: #e5e7eb;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.molt-market-link:hover {
+  border-color: rgba(245, 158, 11, 0.6);
+}
+
+.molt-market-link.active {
+  border-color: rgba(245, 158, 11, 0.7);
+  background: rgba(245, 158, 11, 0.12);
+  color: #fef3c7;
+}
+
+.molt-market-subtitle {
+  margin: 10px 0 18px;
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+.molt-market-alert {
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+  color: #fde68a;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+
+.molt-market-controls {
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.molt-market-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.molt-market-tab {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(31, 41, 55, 0.25);
+  color: #e5e7eb;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.molt-market-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.molt-market-tab.active {
+  border-color: rgba(245, 158, 11, 0.7);
+  background: rgba(245, 158, 11, 0.12);
+  color: #fef3c7;
+}
+
+.molt-market-row {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 12px;
+}
+
+.molt-market-search,
+.molt-market-sort {
+  display: grid;
+  gap: 6px;
+}
+
+.molt-market-search input,
+.molt-market-sort select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(31, 41, 55, 0.25);
+  color: #e5e7eb;
+  padding: 12px 12px;
+  outline: none;
+  color-scheme: dark;
+}
+
+.molt-market-sort select option {
+  background: #0d1117;
+  color: #e5e7eb;
+}
+
+.molt-market-search input:focus,
+.molt-market-sort select:focus {
+  border-color: rgba(245, 158, 11, 0.7);
+}
+
+.molt-market-dim {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.molt-market-grid {
+  margin-top: 20px;
+  display: grid;
+  /* auto-fill avoids a single card stretching full-width when there are few items */
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.molt-market-empty {
+  grid-column: 1 / -1;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 18px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.molt-market-item {
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 18px;
+  overflow: hidden;
+  display: grid;
+  /* Prevent a single item from stretching huge in sparse grids. */
+  max-width: 360px;
+  width: 100%;
+  justify-self: center;
+}
+
+.molt-market-item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 0;
+}
+
+.molt-market-item-title {
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.molt-market-item-sub {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.molt-market-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.08);
+  color: #fef3c7;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.molt-market-owner-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.12);
+  color: rgba(226, 232, 240, 0.95);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.molt-market-note {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(31, 41, 55, 0.18);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.molt-market-price {
+  text-align: right;
+  min-width: 110px;
+}
+
+.molt-market-price-val {
+  font-weight: 650;
+}
+
+.molt-market-item-media {
+  padding: 14px;
+}
+
+.molt-market-img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.molt-market-item-actions {
+  padding: 0 14px 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.molt-market-btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  font-weight: 600;
+}
+
+.molt-market-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.molt-market-btn.primary {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #0b0f14;
+}
+
+.molt-market-btn.ghost {
+  background: rgba(31, 41, 55, 0.25);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
+}
+
+.molt-market-btn.ghost:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.molt-market-item-foot {
+  text-align: center;
+}
+
+.molt-market-pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.molt-market-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  z-index: 50;
+}
+
+.molt-market-modal {
+  width: min(560px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  background: linear-gradient(
+    160deg,
+    rgba(17, 24, 39, 0.98),
+    rgba(15, 23, 42, 0.98)
+  );
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+  padding: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.molt-market-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.molt-market-modal-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.molt-market-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .molt-market-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* MoltStation Profile (minimal, centered, matches Market) */
+.molt-profile-panels {
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.molt-profile-panel {
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 18px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.molt-profile-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.molt-profile-panel-title {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #9ca3af;
+}
+
+.molt-profile-kv {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.molt-profile-kv strong {
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+.molt-profile-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.molt-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.molt-profile-note {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(31, 41, 55, 0.18);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: #9ca3af;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.molt-profile-subtitle {
+  margin-top: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #9ca3af;
+}
+
+.molt-profile-addresses {
+  display: grid;
+  gap: 8px;
+}
+
+.molt-profile-register {
+  margin-top: 18px;
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 18px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.molt-profile-copy {
+  margin: 0;
+  color: #9ca3af;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.molt-profile-form {
+  display: grid;
+  gap: 10px;
+}
+
+.molt-profile-field {
+  display: grid;
+  gap: 6px;
+}
+
+.molt-profile-field span {
+  color: #9ca3af;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.molt-profile-field input {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(31, 41, 55, 0.25);
+  color: #e5e7eb;
+  padding: 12px 12px;
+  outline: none;
+}
+
+.molt-profile-field input:focus {
+  border-color: rgba(245, 158, 11, 0.7);
+}
+
+.molt-profile-nfts-wrap {
+  margin-top: 22px;
+  display: grid;
+  gap: 10px;
+}
+
+.molt-profile-nfts {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.molt-profile-nft {
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 18px;
+  overflow: hidden;
+  display: grid;
+}
+
+.molt-profile-nft-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 0;
+  align-items: flex-start;
+}
+
+.molt-profile-nft-title {
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.molt-profile-nft-media {
+  padding: 14px;
+}
+
+.molt-profile-nft-actions {
+  padding: 0 14px 14px;
+  display: grid;
+  gap: 10px;
+}

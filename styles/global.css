@@ -1,0 +1,314 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'JosefinSans';
+  src: url('../public/assets/fonts/JosefinSans-Bold.ttf') format('truetype');
+}
+
+:root {
+  --arena-bg: #0d1117;
+  --arena-ink: #e5e7eb;
+  --arena-muted: #9ca3af;
+  --arena-accent: #f59e0b;
+  --arena-accent-2: #f97316;
+  --arena-panel: rgba(17, 24, 39, 0.72);
+  --arena-panel-strong: rgba(15, 23, 42, 0.86);
+  --arena-border: rgba(31, 41, 55, 0.75);
+  --arena-border-soft: rgba(31, 41, 55, 0.45);
+  --arena-glow: radial-gradient(
+      circle at top,
+      rgba(249, 115, 22, 0.18),
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 20% 40%,
+      rgba(14, 116, 144, 0.25),
+      transparent 45%
+    );
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0%;
+  padding: 0%;
+  overflow-x: hidden;
+  background: var(--arena-bg);
+  color: var(--arena-ink);
+  font-family: 'Sora', 'Space Grotesk', 'Josefin Sans', sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+pre,
+code {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.arena-shell {
+  background-image: var(--arena-glow);
+}
+
+.arena-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  width: 100%;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.arena-section {
+  padding-top: 64px;
+  padding-bottom: 64px;
+}
+
+.arena-panel {
+  background: var(--arena-panel);
+  border: 1px solid var(--arena-border);
+  border-radius: 24px;
+  backdrop-filter: blur(14px);
+}
+
+.arena-panel-strong {
+  background: var(--arena-panel-strong);
+  border: 1px solid var(--arena-border);
+  border-radius: 24px;
+  backdrop-filter: blur(18px);
+}
+
+.arena-text-muted {
+  color: var(--arena-muted);
+}
+
+.arena-text-dim {
+  color: rgba(247, 242, 233, 0.7);
+}
+
+.arena-border {
+  border-color: var(--arena-border);
+}
+
+.arena-border-soft {
+  border-color: var(--arena-border-soft);
+}
+
+.arena-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+}
+
+.arena-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--arena-border-soft);
+  color: var(--arena-muted);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.arena-title {
+  font-size: clamp(2.8rem, 6vw, 5.2rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.arena-h1 {
+  font-size: clamp(2.4rem, 4.8vw, 4.4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.arena-h2 {
+  font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+.arena-h3 {
+  font-size: 1.1rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.arena-body {
+  color: var(--arena-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.arena-caption {
+  color: var(--arena-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.arena-subtitle {
+  color: var(--arena-muted);
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+}
+
+.arena-button {
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: #1f2937;
+  color: var(--arena-ink);
+  transition: transform 0.15s ease, border-color 0.15s ease,
+    background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.arena-button-primary {
+  background: linear-gradient(
+    135deg,
+    var(--arena-accent),
+    var(--arena-accent-2)
+  );
+  color: #0b0f14;
+  box-shadow: 0 16px 40px rgba(249, 115, 22, 0.18);
+}
+
+.arena-button-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 55px rgba(249, 115, 22, 0.26);
+}
+
+.arena-button-ghost {
+  background: transparent;
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fef3c7;
+}
+
+.arena-button-ghost:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245, 158, 11, 0.7);
+  background: rgba(31, 41, 55, 0.18);
+}
+
+.arena-menu-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--arena-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--arena-muted);
+  background: rgba(255, 255, 255, 0.03);
+  transition: border-color 0.2s ease, color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.arena-menu-link:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--arena-ink);
+}
+
+.arena-menu-link--highlight {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.7);
+  color: #fef3c7;
+}
+
+.arena-footer {
+  background: linear-gradient(
+      180deg,
+      rgba(11, 12, 16, 0.9) 0%,
+      rgba(7, 8, 11, 0.98) 100%
+    ),
+    var(--arena-glow);
+}
+
+.arena-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.arena-grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.arena-grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.arena-code {
+  background: rgba(8, 10, 14, 0.9);
+  border: 1px solid var(--arena-border);
+  border-radius: 16px;
+  padding: 18px;
+  color: #c2f4ff;
+  font-size: 0.9rem;
+  overflow-x: auto;
+}
+
+.arena-has-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+
+.arena-tooltip {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.92);
+  color: #e5e7eb;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  backdrop-filter: blur(12px);
+}
+
+.arena-has-tooltip:hover .arena-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+nav {
+  background: rgba(13, 17, 23, 0.45);
+  border-bottom: 1px solid rgba(31, 41, 55, 0.6);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+input,
+button,
+textarea,
+select {
+  font-family: inherit;
+}
+
+input::placeholder {
+  color: rgba(247, 242, 233, 0.55);
+}
