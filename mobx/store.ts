@@ -223,6 +223,11 @@ export class GlobalStore {
         this.accountAddress = accountAddress;
         this.walletConnected = true;
       });
+      void this.trackAnalyticsEvent('login', {
+        metadata: {
+          source: 'auto_connect',
+        },
+      });
       this.refreshContractStatus();
     } catch {
       // ignore
@@ -406,6 +411,26 @@ export class GlobalStore {
         }
       }
       throw e;
+    }
+  }
+
+  private async trackAnalyticsEvent(
+    eventType: 'login' | 'logout' | 'game_end' | 'identity_checked' | 'popt_checked',
+    payload: Record<string, unknown> = {}
+  ) {
+    if (!this.accountAddress) return;
+    try {
+      await this.fetchRewardsApi('/api/analytics/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType,
+          walletAddress: this.accountAddress,
+          ...payload,
+        }),
+      });
+    } catch {
+      // Analytics should never block gameplay.
     }
   }
 
@@ -772,6 +797,12 @@ export class GlobalStore {
           this.accountAddress = accountAddress;
           this.walletConnected = true;
         });
+        void this.trackAnalyticsEvent('login', {
+          metadata: {
+            source: 'wallet_connect',
+            chainId: finalNetId,
+          },
+        });
       } catch (e) {
         console.error(e);
         notify('danger', 'Connection error');
@@ -780,6 +811,12 @@ export class GlobalStore {
   }
 
   disconnectWallet() {
+    const walletAddress = this.accountAddress;
+    if (walletAddress) {
+      void this.trackAnalyticsEvent('logout', {
+        metadata: { source: 'wallet_disconnect' },
+      });
+    }
     runInAction(() => {
       this.accountAddress = '';
       this.walletConnected = false;
@@ -828,6 +865,7 @@ export class GlobalStore {
     const popt = this.getPoptContractAddress();
     const shellRunners = this.resolveShellRunnersAddress();
     const owned: ICoreOwnedNft[] = [];
+    let poptTokenId: number | null = null;
 
     try {
       if (identity) {
@@ -868,6 +906,7 @@ export class GlobalStore {
         });
         const parsed = Number(poptId);
         if (Number.isFinite(parsed) && parsed > 0) {
+          poptTokenId = parsed;
           const tokenUri = await read({
             address: popt,
             abi: erc721MetadataAbi,
@@ -912,6 +951,13 @@ export class GlobalStore {
     } catch (e) {
       console.error(e);
     } finally {
+      if (this.accountAddress && popt) {
+        void this.trackAnalyticsEvent('popt_checked', {
+          hasPoPT: poptTokenId !== null,
+          tokenId: poptTokenId,
+          contractAddress: popt,
+        });
+      }
       runInAction(() => {
         this.coreOwnedNftList = owned;
         this.coreOwnedNftLoaded = true;
@@ -1011,7 +1057,16 @@ export class GlobalStore {
         body: JSON.stringify({ agent: this.accountAddress }),
       });
       if (!response.ok) {
-        throw new Error('Scorebank fetch failed');
+        let message = 'Scorebank fetch failed';
+        try {
+          const payload = (await response.json()) as { error?: string };
+          if (payload?.error) {
+            message = payload.error;
+          }
+        } catch {
+          // keep generic message
+        }
+        throw new Error(message);
       }
       const payload = await response.json();
       const score = Number(payload.score ?? 0);
@@ -1068,6 +1123,11 @@ export class GlobalStore {
           this.hasIdentity = false;
         }
         this.identityLoaded = true;
+      });
+      void this.trackAnalyticsEvent('identity_checked', {
+        hasIdentity: Number.isFinite(parsed) && parsed > 0,
+        tokenId: Number.isFinite(parsed) && parsed > 0 ? parsed : null,
+        contractAddress: identityAddress,
       });
     } catch (e) {
       runInAction(() => {
@@ -1411,6 +1471,16 @@ export class GlobalStore {
         this.rewardsPayoutInFlight = false;
       });
     }
+  }
+
+  async trackGameEnd(score: number, metersTravelled: number, choseToMint: boolean) {
+    if (!this.walletConnected || !this.accountAddress) return;
+    await this.trackAnalyticsEvent('game_end', {
+      sessionId: this.rewardsSessionId || null,
+      score: Math.floor(score),
+      metersTravelled: Math.floor(metersTravelled),
+      choseToMint: Boolean(choseToMint),
+    });
   }
 
   async mintNFT(score: number): Promise<boolean> {

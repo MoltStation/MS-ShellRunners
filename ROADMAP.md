@@ -6,6 +6,7 @@
 3. Env template added (`.env.example`) --DONE
 4. Vercel deployment checklist added (`DEPLOYMENT_CHECKLIST.md`) --DONE
 5. Backend signing/mint flow redirected to backend service endpoint --DONE
+6. Game now sends analytics events (login/logout/game-end + identity/PoPT checks) to backend Mongo tracking --DONE
 
 ## Open Product/Architecture Decision
 1. Re-discuss NFT model:
@@ -18,3 +19,4 @@
 2. Lock final game session/snapshot/highscore mint/update rules.
 3. Finalize marketplace UX for single owned runner per wallet/agent.
 4. Run full e2e test pass against deployed Base Sepolia contracts.
+5. Add explicit UI telemetry for failed snapshot/payout retries.

@@ -25,6 +25,7 @@ This fork is the basis for our game. We have refactored, expanded, and integrate
 - Payouts mint MoltStation rewards on a 24h cadence with EIP-712 signatures.
 - PoPT (Proof of Play) mints on first payout and updates on payout only.
 - Marketplace activity is handled in the core platform at `/market`.
+- Client-side gameplay/account events are posted to backend analytics for Mongo tracking.
 
 ## Configuration
 This repo reads addresses from a **single JSON config** first, with `.env` as a fallback.
@@ -56,6 +57,8 @@ These are served from **MoltStation-Backend**:
 - `POST /api/rewards/snapshot`
 - `POST /api/rewards/scorebank`
 - `POST /api/rewards/payout`
+- `POST /api/analytics/event` (login/logout/game-end + identity/PoPT checks)
+- `POST /api/newsletter/subscribe` (used by core landing waitlist)
 
 ## Local Dev
 ```bash

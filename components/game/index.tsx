@@ -41,6 +41,7 @@ const GameScreen = () => {
   const endGameCB = useCallback(
     async (score: number, metersTravelled: number, choseToMint: boolean) => {
       await state.snapshotRewardsScore(score);
+      await state.trackGameEnd(score, metersTravelled, choseToMint);
       if (state.walletConnected) {
         // Pull latest on-chain scorebank shortly after final snapshot submission.
         for (let i = 0; i < 4; i += 1) {
