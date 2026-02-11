@@ -16,6 +16,8 @@ class MyDocument extends Document {
     return (
       <Html>
         <Head>
+          <link rel='icon' type='image/png' href='/Molt_Only_2.0.png' />
+          <link rel='apple-touch-icon' href='/Molt_Only_2.0.png' />
           <link rel='preconnect' href='https://fonts.googleapis.com' />
           <link
             rel='preconnect'

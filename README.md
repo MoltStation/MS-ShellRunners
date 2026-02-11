@@ -57,7 +57,8 @@ These are served from **MoltStation-Backend**:
 - `POST /api/rewards/snapshot`
 - `POST /api/rewards/scorebank`
 - `POST /api/rewards/payout`
-- `POST /api/analytics/event` (login/logout/game-end + identity/PoPT checks)
+- `POST /api/events/track` (login/logout/game-end + identity/PoPT checks)
+- Legacy alias also supported by backend: `POST /api/analytics/event`
 - `POST /api/newsletter/subscribe` (used by core landing waitlist)
 
 ## Local Dev

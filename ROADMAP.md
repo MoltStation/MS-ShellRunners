@@ -7,6 +7,7 @@
 4. Vercel deployment checklist added (`DEPLOYMENT_CHECKLIST.md`) --DONE
 5. Backend signing/mint flow redirected to backend service endpoint --DONE
 6. Game now sends analytics events (login/logout/game-end + identity/PoPT checks) to backend Mongo tracking --DONE
+7. Analytics route switched to neutral endpoint (`/api/events/track`) to avoid client-side blocker false-positives --DONE
 
 ## Open Product/Architecture Decision
 1. Re-discuss NFT model:

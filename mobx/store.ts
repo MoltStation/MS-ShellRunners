@@ -420,7 +420,7 @@ export class GlobalStore {
   ) {
     if (!this.accountAddress) return;
     try {
-      await this.fetchRewardsApi('/api/analytics/event', {
+      await this.fetchRewardsApi('/api/events/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
