@@ -1,3 +1,12 @@
-import dynamic from 'next/dynamic';
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: '/shellrunners',
+      permanent: false,
+    },
+  };
+}
 
-export default dynamic(() => import('../components/game'), { ssr: false });
+export default function LegacyGameRedirect() {
+  return null;
+}

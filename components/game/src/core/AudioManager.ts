@@ -5,6 +5,7 @@ export class AudioManager {
   scene: AbstractScene;
   private bgSounds: Map<string, Phaser.Sound.BaseSound> = new Map();
   private sounds: Map<string, Phaser.Sound.BaseSound> = new Map();
+  private deferredPlayKeys: Set<string> = new Set();
 
   constructor(scene: AbstractScene) {
     this.scene = scene;
@@ -23,7 +24,28 @@ export class AudioManager {
     }
   }
 
+  private canPlayAudio(): boolean {
+    const soundManager = this.scene.sound as any;
+    if (!soundManager) return false;
+    if (soundManager.locked) return false;
+    const context = soundManager.context as AudioContext | undefined;
+    if (context && context.state !== 'running') return false;
+    return true;
+  }
+
   play(key: string, shouldStopPrevious = true): void {
+    if (!this.canPlayAudio()) {
+      if (!this.deferredPlayKeys.has(key)) {
+        this.deferredPlayKeys.add(key);
+        const retry = () => {
+          this.deferredPlayKeys.delete(key);
+          this.play(key, shouldStopPrevious);
+        };
+        this.scene.input.once('pointerdown', retry);
+        this.scene.input.keyboard?.once('keydown', retry);
+      }
+      return;
+    }
     const sound = this.sounds && this.sounds.get(key);
     if (this.sounds && sound) {
       if (shouldStopPrevious) {
@@ -36,6 +58,7 @@ export class AudioManager {
   }
 
   playMusic(key: string, shouldStopPrevious = true): void {
+    if (!this.canPlayAudio()) return;
     const bgSound = this.bgSounds && this.bgSounds.get(key);
     if (bgSound) {
       if (shouldStopPrevious) {
@@ -48,6 +71,7 @@ export class AudioManager {
   }
 
   onceComplete(key: string, callback: () => void): void {
+    if (!this.canPlayAudio()) return;
     const sound = this.sounds && this.sounds.get(key);
     if (this.sounds && sound) {
       sound.play();

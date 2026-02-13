@@ -215,10 +215,6 @@ export class GlobalStore {
       const accountAddress = (accounts?.[0] ?? '') as string;
       if (!accountAddress) return;
       this.loadPersistedAuth(accountAddress);
-      if (!this.walletSigned || !this.walletSignature) {
-        // Don't show as connected until the user has signed the auth message.
-        return;
-      }
       runInAction(() => {
         this.accountAddress = accountAddress;
         this.walletConnected = true;
@@ -226,6 +222,7 @@ export class GlobalStore {
       void this.trackAnalyticsEvent('login', {
         metadata: {
           source: 'auto_connect',
+          signed: Boolean(this.walletSigned && this.walletSignature),
         },
       });
       this.refreshContractStatus();
@@ -844,6 +841,13 @@ export class GlobalStore {
     });
   }
 
+  closeGameplaySession() {
+    runInAction(() => {
+      this.rewardsSessionId = '';
+      this.rewardsSessionExpiresAt = 0;
+    });
+  }
+
   private computeGameId(label: string) {
     return keccak256(toBytes(label));
   }
@@ -976,7 +980,7 @@ export class GlobalStore {
       functionName: 'fetchMarketItems',
     });
     const uri = await Promise.all(
-      nftsData.map(async (nft) => {
+      nftsData.map(async (nft: any) => {
         try {
           return await read({
             address: nft.nftContract,
@@ -991,7 +995,7 @@ export class GlobalStore {
       })
     );
     runInAction(() => {
-      this.marketNftList = nftsData.map((item, index) => ({
+      this.marketNftList = nftsData.map((item: any, index: number) => ({
         price: parseFloat(formatEther(item.price)),
         owner: item.owner,
         seller: item.seller,
@@ -1010,11 +1014,22 @@ export class GlobalStore {
     if (this.accountAddress) {
       const shellRunners = this.requireShellRunnersAddress();
       if (!shellRunners) return;
-      const newUserNftCount = await read({
-        address: shellRunners,
-        abi: shellRunnersAbi,
-        functionName: 'balanceOf',
-        args: [this.accountAddress as Address],
+      const [newUserNftCount, highScore] = await Promise.all([
+        read({
+          address: shellRunners,
+          abi: shellRunnersAbi,
+          functionName: 'balanceOf',
+          args: [this.accountAddress as Address],
+        }),
+        read({
+          address: shellRunners,
+          abi: shellRunnersAbi,
+          functionName: 'userAddressToHighScore',
+          args: [this.accountAddress as Address],
+        }),
+      ]);
+      runInAction(() => {
+        this.highScore = Number(highScore);
       });
       if (force || Number(newUserNftCount) !== this.userNftList.length) {
         const nftsData = await read({
@@ -1023,18 +1038,11 @@ export class GlobalStore {
           functionName: 'getUserOwnedNFTs',
           args: [this.accountAddress as Address],
         });
-        const highScore = await read({
-          address: shellRunners,
-          abi: shellRunnersAbi,
-          functionName: 'userAddressToHighScore',
-          args: [this.accountAddress as Address],
-        });
         runInAction(() => {
-          this.userNftList = nftsData.map((item) => ({
+          this.userNftList = nftsData.map((item: any) => ({
             tokenId: Number(item.tokenId),
             tokenUri: item.tokenURI,
           }));
-          this.highScore = Number(highScore);
         });
       }
     } else {
@@ -1486,9 +1494,27 @@ export class GlobalStore {
   async mintNFT(score: number): Promise<boolean> {
     await this.ensureAddressConfigLoaded();
     try {
-      if (score <= this.highScore) throw new Error('Not a new high score');
+      if (!this.walletConnected || !this.accountAddress) {
+        notify('danger', 'Wallet not connected');
+        return false;
+      }
       const shellRunners = this.requireShellRunnersAddress();
       if (!shellRunners) return false;
+      const currentHighScoreRaw = await read({
+        address: shellRunners,
+        abi: shellRunnersAbi,
+        functionName: 'userAddressToHighScore',
+        args: [this.accountAddress as Address],
+      });
+      const currentHighScore = Number(currentHighScoreRaw);
+      if (Number.isFinite(currentHighScore)) {
+        runInAction(() => {
+          this.highScore = Math.max(this.highScore, currentHighScore);
+        });
+      }
+      if (score <= Math.max(this.highScore, Number.isFinite(currentHighScore) ? currentHighScore : 0)) {
+        throw new Error('Not a new high score');
+      }
 
       // Platform rule: only mint once; subsequent improvements upgrade the first minted NFT.
       await this.fetchUserNftsList(true);

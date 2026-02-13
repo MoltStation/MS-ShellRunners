@@ -90,7 +90,13 @@ export class ResultScreen extends Phaser.GameObjects.Container {
       color: '#FFFFFF',
     }
 
-    this.goToHome = this.scene.add.text(this.overlay.getBottomCenter().x + 75, this.overlay.getBottomCenter().y - 80, 'Go to Home', titleConfig).setAlign('center').setOrigin(0.5, 0.5);
+    const homeLabel = this.scene.initGameData.isEmbedded ? 'Exit Game' : 'Go to Home';
+    this.goToHome = this.scene.add.text(
+      this.overlay.getBottomCenter().x + 75,
+      this.overlay.getBottomCenter().y - 80,
+      homeLabel,
+      titleConfig
+    ).setAlign('center').setOrigin(0.5, 0.5);
     this.goToHome.setInteractive();
     this.goToHome.on('pointerdown', () => {
       // Sharing playAgainButton state

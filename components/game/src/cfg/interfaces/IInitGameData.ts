@@ -1,6 +1,7 @@
 export interface IInitGameData {
     initMetaData: Array<IUserNftWithMetadata>;
     highScore: number;
+    isEmbedded?: boolean;
     endGameCB: (score: number, metersTravelled: number, choseToMint?: boolean) => void;
     mintShellRunnersCB: (score: number) => Promise<boolean>;
     goHomeCB: () => void;

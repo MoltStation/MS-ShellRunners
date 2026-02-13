@@ -5,6 +5,8 @@ import { BootScene } from '../src/scenes/BootScene';
 import { GameScene } from '../src/scenes/GameScene';
 import { GPU } from '../../../lib/gpu-browser';
 
+const DEBUG_RUNTIME = process.env.NEXT_PUBLIC_SHELLRUNNERS_DEBUG === 'true';
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.CANVAS,
   title: 'Shell Runners',
@@ -55,11 +57,15 @@ const runPerformanceTest = () => {
       minPerformance = currentPerformance;
     }
     if (minPerformance <= 80) {
-      console.log('PERFORMANCE: ' + minPerformance);
+      if (DEBUG_RUNTIME) {
+        console.log('PERFORMANCE: ' + minPerformance);
+      }
       return minPerformance;
     }
   }
-  console.log('RUN', minPerformance);
+  if (DEBUG_RUNTIME) {
+    console.log('RUN', minPerformance);
+  }
   performanceMeasure = performanceMeasure.map((val) => {
     return val;
   });
@@ -74,7 +80,9 @@ const runPerformanceTest = () => {
     '\nSUM: ' +
     sum2 +
     '\n----------------------';
-  console.warn('RESULT: ' + result);
+  if (DEBUG_RUNTIME) {
+    console.warn('RESULT: ' + result);
+  }
   return min;
 };
 
@@ -95,12 +103,18 @@ const getRendererAndDPR = () => {
   let dpr = window.devicePixelRatio;
   let rendererType = Phaser.AUTO;
   if (performance <= 80) {
-    console.log('High Performance! 0% quality reduction');
+    if (DEBUG_RUNTIME) {
+      console.log('High Performance! 0% quality reduction');
+    }
   } else if (performance <= 160) {
-    console.log('Moderate Performance! 20% quality reduction');
+    if (DEBUG_RUNTIME) {
+      console.log('Moderate Performance! 20% quality reduction');
+    }
     dpr *= 0.8;
   } else {
-    console.log('Low Performance! Switched to Canvas Mode');
+    if (DEBUG_RUNTIME) {
+      console.log('Low Performance! Switched to Canvas Mode');
+    }
     rendererType = Phaser.CANVAS;
   }
 
@@ -150,13 +164,13 @@ const addNewGame = (parent: HTMLDivElement) => {
 };
 
 const useGame = (
-  containerRef: React.RefObject<HTMLDivElement>
+  containerRef: React.RefObject<HTMLDivElement | null>
 ): { game: Phaser.Game | undefined; grs: GameResizer | undefined } => {
   const [game, setGame] = useState<Phaser.Game>();
-  const gameRef = useRef<Phaser.Game>();
-  const resizeRemRef = useRef<Function>();
-  const orientationRemRef = useRef<Function>();
-  const grsRef = useRef<GameResizer>();
+  const gameRef = useRef<Phaser.Game | undefined>(undefined);
+  const resizeRemRef = useRef<Function | undefined>(undefined);
+  const orientationRemRef = useRef<Function | undefined>(undefined);
+  const grsRef = useRef<GameResizer | undefined>(undefined);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -175,7 +189,9 @@ const useGame = (
     setGame(newGame);
 
     return () => {
-      console.warn('remove game and listeners');
+      if (DEBUG_RUNTIME) {
+        console.warn('remove game and listeners');
+      }
       gameRef.current && gameRef.current.destroy(true);
       gameRef.current = undefined;
       resizeRemRef.current && resizeRemRef.current();

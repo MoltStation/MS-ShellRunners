@@ -14,10 +14,17 @@ export class InputManager {
 
   constructor(private scene: AbstractScene) {
     this.events = new Phaser.Events.EventEmitter();
-    this.cursorKeys = this.scene.input.keyboard.createCursorKeys();
+    const keyboard = this.scene.input.keyboard;
+    this.cursorKeys = keyboard
+      ? keyboard.createCursorKeys()
+      : ({} as Phaser.Types.Input.Keyboard.CursorKeys);
     this.isDesktop = this.scene.game.device.os.desktop;
-    this.keyA = this.scene.input.keyboard.addKey('A');
-    this.keyD = this.scene.input.keyboard.addKey('D');
+    this.keyA = keyboard
+      ? keyboard.addKey('A')
+      : ({} as Phaser.Input.Keyboard.Key);
+    this.keyD = keyboard
+      ? keyboard.addKey('D')
+      : ({} as Phaser.Input.Keyboard.Key);
 
     if (!this.isDesktop) {
       this.addTouchListener();
@@ -50,7 +57,9 @@ export class InputManager {
   }
 
   private addEscapeListener(): void {
-    this.scene.input.keyboard.on('keyup-' + 'ESC', () => {
+    const keyboard = this.scene.input.keyboard;
+    if (!keyboard) return;
+    keyboard.on('keyup-' + 'ESC', () => {
       this.events.emit(CUSTOM_EVENTS.ESCAPE);
     });
   }
@@ -73,9 +82,9 @@ export class InputManager {
     if (this.isInputEnabled) {
       if (this.isDesktop) {
         this.inputDirection = EInputDirection.NONE;
-        if (this.cursorKeys.left.isDown || this.keyA.isDown) {
+        if (this.cursorKeys.left?.isDown || this.keyA?.isDown) {
           this.inputDirection = EInputDirection.LEFT;
-        } else if (this.cursorKeys.right.isDown || this.keyD.isDown) {
+        } else if (this.cursorKeys.right?.isDown || this.keyD?.isDown) {
           this.inputDirection = EInputDirection.RIGHT;
         }
       }

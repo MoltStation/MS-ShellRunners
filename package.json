@@ -5,7 +5,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "node scripts/lint-shellrunners.mjs",
+    "typecheck": "tsc --noEmit",
+    "ci:check": "npm run lint && npm run typecheck",
+    "ci:build": "npm run build",
     "seed:db": "node scripts/seed-db.mjs",
     "update:addresses": "node scripts/update-addresses-from-broadcast.mjs"
   },

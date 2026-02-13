@@ -2,9 +2,11 @@
 
 ## 1) Preflight
 1. `npm install`
-2. `npm run build`
-3. Confirm `public/config/addresses.json` has deployed addresses.
-4. Confirm backend URL is reachable from browser.
+2. `npm run lint`
+3. `npm run typecheck`
+4. `npm run build`
+5. Confirm `public/config/addresses.json` has deployed addresses.
+6. Confirm backend URL is reachable from browser.
 
 ## 2) Vercel Setup
 1. Create Vercel project.
@@ -31,3 +33,5 @@
 3. Start session + score snapshot updates scorebank.
 4. Payout button and cooldown render correctly.
 5. Marketplace links route to core `/market`.
+6. Runtime page `/shellrunners` loads and is embeddable from `MoltStation-Frontend` (`/games/shellrunners`).
+7. Production runtime URL resolves at `https://game.moltstation.games/shellrunners`.

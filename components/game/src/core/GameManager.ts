@@ -66,15 +66,11 @@ export class GameManager {
 
   handleGamePause() {
     this.isGamePaused = true;
-    this.scene.tweens.pauseAll();
-    this.scene.time.paused = true;
     this.gameComponents.overlay.showOverlay();
   }
 
   handleGameResume() {
     this.isGamePaused = false;
-    this.scene.tweens.resumeAll();
-    this.scene.time.paused = false;
     this.gameComponents.overlay.hideOverlay();
   }
 

@@ -4,9 +4,6 @@ import {
   custom,
   http,
   toHex,
-  type Abi,
-  type ReadContractParameters,
-  type WriteContractParameters,
 } from 'viem';
 import { baseSepolia } from 'viem/chains';
 
@@ -17,7 +14,8 @@ const RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL ??
   DEFAULT_RPC_URL;
 
-let cachedPublicClient: ReturnType<typeof createPublicClient> | null = null;
+let cachedPublicClient: any = null;
+let cachedWalletClient: any = null;
 
 export const getPublicClient = () => {
   if (!cachedPublicClient) {
@@ -31,10 +29,13 @@ export const getPublicClient = () => {
 
 export const getWalletClient = () => {
   if (typeof window === 'undefined' || !window.ethereum) return null;
-  return createWalletClient({
-    chain: baseSepolia,
-    transport: custom(window.ethereum),
-  });
+  if (!cachedWalletClient) {
+    cachedWalletClient = createWalletClient({
+      chain: baseSepolia,
+      transport: custom(window.ethereum),
+    });
+  }
+  return cachedWalletClient;
 };
 
 export const getChainId = async () => {
@@ -75,19 +76,15 @@ export const switchToBaseSepolia = async () => {
   }
 };
 
-export const read = <TAbi extends Abi, TFunctionName extends string>(
-  params: ReadContractParameters<TAbi, TFunctionName>
-) => {
+export const read = (params: unknown): Promise<any> => {
   const client = getPublicClient();
-  return client.readContract(params);
+  return client.readContract(params as any) as Promise<any>;
 };
 
-export const write = async <TAbi extends Abi, TFunctionName extends string>(
-  params: WriteContractParameters<TAbi, TFunctionName>
-) => {
+export const write = async (params: unknown): Promise<any> => {
   const wallet = getWalletClient();
   if (!wallet) {
     throw new Error('Wallet not detected');
   }
-  return wallet.writeContract(params);
+  return wallet.writeContract(params as any) as Promise<any>;
 };

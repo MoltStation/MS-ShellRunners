@@ -54,5 +54,5 @@ interface ICoreOwnedNft {
   tokenId: number;
   tokenUri: string;
   nftContract: string;
-  collectionLabel: 'Identity' | 'PoPT';
+  collectionLabel: 'Identity' | 'PoPT' | 'Shell Runners';
 }

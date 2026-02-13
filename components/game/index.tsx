@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useGame } from './hooks';
 import { useStore } from '../../mobx';
@@ -27,8 +27,40 @@ const starterShellRunner: IUserNftWithMetadata = {
   },
 };
 
+const RUNTIME_EVENT_SOURCE = 'moltstation-runtime';
+
+function resolveCoreBaseUrlFromWindow(fallback: string) {
+  if (typeof window === 'undefined') return fallback;
+  const fallbackUrl = String(fallback || '').trim() || 'https://moltstation.games';
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const coreOrigin = String(params.get('coreOrigin') || '').trim();
+    if (coreOrigin) {
+      const parsed = new URL(coreOrigin);
+      return parsed.origin;
+    }
+  } catch {
+    // ignore invalid query params
+  }
+
+  try {
+    const parsedFallback = new URL(fallbackUrl);
+    const isLocalHost =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
+    const fallbackIsProdDomain =
+      parsedFallback.hostname === 'moltstation.games' ||
+      parsedFallback.hostname === 'www.moltstation.games';
+    if (isLocalHost && fallbackIsProdDomain) {
+      return 'http://127.0.0.1:3000';
+    }
+  } catch {
+    // ignore parse failures, fallback below
+  }
+  return fallbackUrl;
+}
+
 const GameScreen = () => {
-  const [ended, setEnded] = useState(false);
   const [inventoryChecked, setInventoryChecked] = useState(false);
   const router = useRouter();
   const state = useStore();
@@ -36,6 +68,54 @@ const GameScreen = () => {
   const { game, grs } = useGame(parentEl);
   const snapshotIntervalMs = Number(
     process.env.NEXT_PUBLIC_MOLTBOT_SNAPSHOT_INTERVAL_MS ?? 5000
+  );
+  const coreBaseUrl = resolveCoreBaseUrlFromWindow(
+    process.env.NEXT_PUBLIC_CORE_LANDING_URL || 'https://moltstation.games'
+  );
+  const isEmbedded = typeof window !== 'undefined' && window.self !== window.top;
+  const startedRef = useRef(false);
+  const canStart = useMemo(
+    () =>
+      state.walletConnected &&
+      state.hasIdentity &&
+      state.contractsReady &&
+      inventoryChecked,
+    [state.walletConnected, state.hasIdentity, state.contractsReady, inventoryChecked]
+  );
+  const postRuntimeEvent = useCallback(
+    (event: string, payload: Record<string, unknown> = {}) => {
+      if (typeof window === 'undefined' || !isEmbedded || !window.parent) return false;
+      const message = {
+        source: RUNTIME_EVENT_SOURCE,
+        event,
+        payload,
+      };
+      try {
+        const targetOrigin = new URL(coreBaseUrl).origin;
+        window.parent.postMessage(message, targetOrigin);
+      } catch {
+        window.parent.postMessage(message, '*');
+      }
+      return true;
+    },
+    [coreBaseUrl, isEmbedded]
+  );
+
+  const goToCorePath = useCallback(
+    (path: string) => {
+      if (typeof window === 'undefined') return;
+      try {
+        const target = new URL(path, coreBaseUrl);
+        if (target.origin === window.location.origin) {
+          router.replace(`${target.pathname}${target.search}${target.hash}`);
+          return;
+        }
+        window.location.replace(target.toString());
+      } catch {
+        window.location.replace(coreBaseUrl);
+      }
+    },
+    [coreBaseUrl, router]
   );
 
   const endGameCB = useCallback(
@@ -54,36 +134,26 @@ const GameScreen = () => {
         if (choseToMint) {
           state.mintNFT(score);
         }
-      } else if (process.env.NODE_ENV === 'development') {
-        console.log('end game cb is working but user not connected to wallet');
       }
     },
     [state]
   );
 
   const goHomeCB = useCallback(() => {
-    router.push('/profile');
-  }, [router]);
-
-  const exitToCoreCB = useCallback(() => {
-    const coreLanding =
-      process.env.NEXT_PUBLIC_CORE_LANDING_URL || 'https://moltstation.games';
-    if (typeof window === 'undefined') {
+    state.closeGameplaySession();
+    if (postRuntimeEvent('runtime_exit', { reason: 'result_screen' })) {
       return;
     }
-    try {
-      const target = new URL(coreLanding, window.location.origin);
-      // If core landing is same-origin, route internally for instant navigation.
-      if (target.origin === window.location.origin) {
-        router.replace(`${target.pathname}${target.search}${target.hash}`);
-        return;
-      }
-      // Cross-origin fallback: replace without keeping game page in history.
-      window.location.replace(target.toString());
-    } catch {
-      window.location.replace(coreLanding);
+    goToCorePath('/profile');
+  }, [goToCorePath, postRuntimeEvent, state]);
+
+  const exitToCoreCB = useCallback(() => {
+    state.closeGameplaySession();
+    if (postRuntimeEvent('runtime_exit', { reason: 'pause_menu' })) {
+      return;
     }
-  }, [router]);
+    goToCorePath('/');
+  }, [goToCorePath, postRuntimeEvent, state]);
 
   const mintShellRunnersCB = useCallback(
     async (score: number) => {
@@ -104,11 +174,12 @@ const GameScreen = () => {
   );
 
   useEffect(() => {
-    if (!state.walletConnected) {
+    if (state.walletConnected) return;
+    if (!isEmbedded) {
       notify('danger', 'Wallet not connected');
-      router.replace('/');
+      goToCorePath('/games/shellrunners');
     }
-  }, [state.walletConnected, router]);
+  }, [state.walletConnected, goToCorePath, isEmbedded]);
 
   useEffect(() => {
     if (state.walletConnected && !state.identityLoaded) {
@@ -123,10 +194,12 @@ const GameScreen = () => {
       !state.hasIdentity &&
       true
     ) {
-      notify('danger', 'Identity NFT required to play');
-      router.replace('/profile');
+      if (!isEmbedded) {
+        notify('danger', 'Identity NFT required to play');
+        goToCorePath('/profile');
+      }
     }
-  }, [state.walletConnected, state.identityLoaded, state.hasIdentity, router]);
+  }, [state.walletConnected, state.identityLoaded, state.hasIdentity, goToCorePath, isEmbedded]);
 
   useEffect(() => {
     if (
@@ -134,10 +207,18 @@ const GameScreen = () => {
       state.addressConfigLoaded &&
       !state.contractsReady
     ) {
-      notify('danger', 'Contracts not configured');
-      router.replace('/profile');
+      if (!isEmbedded) {
+        notify('danger', 'Contracts not configured');
+        goToCorePath('/profile');
+      }
     }
-  }, [state.walletConnected, state.addressConfigLoaded, state.contractsReady, router]);
+  }, [
+    state.walletConnected,
+    state.addressConfigLoaded,
+    state.contractsReady,
+    goToCorePath,
+    isEmbedded,
+  ]);
 
   useEffect(() => {
     if (state.walletConnected && !state.rewardsScorebankLoaded) {
@@ -158,65 +239,106 @@ const GameScreen = () => {
   }, [state.walletConnected, inventoryChecked, state]);
 
   useEffect(() => {
-    // Platform rule: game requires a connected wallet + Identity NFT.
-    // ShellRunners NFTs are optional; if none exist we use a local starter runner.
-    const canStart = state.walletConnected && state.hasIdentity && state.contractsReady;
-    // if (state.loaded) {
-    if (game && !ended && canStart && inventoryChecked) {
-      game.scene.start('boot', {
-        grs,
-        initGameData: {
-          highScore:
-            process.env.NODE_ENV === 'development' && !state.walletConnected
-              ? 250
-              : state.highScore,
-          endGameCB,
-          mintShellRunnersCB,
-          goHomeCB,
-          hasShellRunnerNft: (state.userNftList ?? []).some((nft: any) => Number(nft?.tokenId) >= 0),
-          snapshotIntervalMs: Number.isFinite(snapshotIntervalMs)
-            ? snapshotIntervalMs
-            : 5000,
-          snapshotScoreCB,
-          sessionStartCB,
-          exitToCoreCB,
-          initMetaData:
-            (state.userNftWithMetadata ?? []).length > 0
-              ? state.userNftWithMetadata
-              : [starterShellRunner],
-        },
-      });
-    }
-    if (ended) {
-      console.log('rerouting');
-      router.push('/home');
-    }
-    // }
+    if (!game || !grs || !canStart || startedRef.current) return;
+    startedRef.current = true;
+    game.scene.start('boot', {
+      grs,
+      initGameData: {
+        isEmbedded,
+        highScore: state.highScore,
+        endGameCB,
+        mintShellRunnersCB,
+        goHomeCB,
+        hasShellRunnerNft: (state.userNftList ?? []).some((nft: any) => Number(nft?.tokenId) >= 0),
+        snapshotIntervalMs: Number.isFinite(snapshotIntervalMs)
+          ? snapshotIntervalMs
+          : 5000,
+        snapshotScoreCB,
+        sessionStartCB,
+        exitToCoreCB,
+        initMetaData:
+          (state.userNftWithMetadata ?? []).length > 0
+            ? state.userNftWithMetadata
+            : [starterShellRunner],
+      },
+    });
   }, [
-    game,
-    ended,
-    router,
+    canStart,
     endGameCB,
-    goHomeCB,
-    mintShellRunnersCB,
-    grs,
-    snapshotScoreCB,
-    sessionStartCB,
     exitToCoreCB,
+    game,
+    goHomeCB,
+    grs,
+    isEmbedded,
+    mintShellRunnersCB,
+    sessionStartCB,
     snapshotIntervalMs,
-    inventoryChecked,
-    state.walletConnected,
-    state.rewardsScorebankLoaded,
-    state.rewardsScorebankScore,
+    snapshotScoreCB,
     state.highScore,
+    state.userNftList,
     state.userNftWithMetadata,
-    state.dummyUserNftWithMetadata,
   ]);
+
+  useEffect(() => {
+    return () => {
+      startedRef.current = false;
+    };
+  }, []);
 
   return (
     <>
-      <div ref={parentEl} style={{ height: '100vh', overflow: 'hidden' }} />
-      <div id='font-hack'>.</div>
+      <div ref={parentEl} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
+      {!canStart && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'grid',
+            placeItems: 'center',
+            background: 'rgba(2, 6, 23, 0.65)',
+            zIndex: 20,
+            textAlign: 'center',
+            padding: 16,
+          }}>
+          <div
+            style={{
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              borderRadius: 14,
+              background: 'rgba(15, 23, 42, 0.9)',
+              padding: 18,
+              maxWidth: 420,
+            }}>
+            {!state.walletConnected && (
+              <>
+                <div style={{ marginBottom: 10, color: '#e5e7eb' }}>Wallet connection required</div>
+                <button
+                  type='button'
+                  onClick={() => state.connectToWallet()}
+                  style={{
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    border: '1px solid rgba(245, 158, 11, 0.6)',
+                    background: 'linear-gradient(135deg, #f59e0b, #f97316)',
+                    color: '#0b0f14',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}>
+                  Connect Wallet
+                </button>
+              </>
+            )}
+            {state.walletConnected && !state.identityLoaded && (
+              <div style={{ color: '#e5e7eb' }}>Checking Identity NFT...</div>
+            )}
+            {state.walletConnected && state.identityLoaded && !state.hasIdentity && (
+              <div style={{ color: '#fde68a' }}>Identity NFT required to play.</div>
+            )}
+            {state.walletConnected && state.hasIdentity && !state.contractsReady && (
+              <div style={{ color: '#fecaca' }}>Game contracts are not configured.</div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };
