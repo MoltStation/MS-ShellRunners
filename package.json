@@ -1,8 +1,9 @@
 {
   "name": "shellrunners",
   "private": true,
+  "packageManager": "npm@10",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3002",
     "build": "next build",
     "start": "next start",
     "lint": "node scripts/lint-shellrunners.mjs",

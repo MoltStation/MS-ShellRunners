@@ -1,6 +1,6 @@
 # MoltStation ShellRunners Roadmap
 
-## Current Status (2026-02-13)
+## Current Status (2026-02-15)
 1. Repo split from previous combined setup completed --DONE
 2. ShellRunners client + contract code moved into dedicated game repo --DONE
 3. Env template added (`.env.example`) --DONE
@@ -18,6 +18,8 @@
 15. Embedded wallet gate added (`Connect Wallet` overlay before runtime start) --DONE
 16. Pause/resume logic fixed (removed global tween/time freeze deadlock) --DONE
 17. Audio playback now defers safely until browser unlock gesture (BGM/SFX stability) --DONE
+18. Default dev port pinned to `3002` to avoid local port collisions with core frontend --DONE
+19. Vercel runtime hosting scaffolding added (`vercel.json`, `.vercelignore`) --DONE
 
 ## Open Product/Architecture Decision
 1. Re-discuss NFT model:

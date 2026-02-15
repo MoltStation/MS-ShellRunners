@@ -2,8 +2,9 @@
 module.exports = {
   reactStrictMode: true,
   // OneDrive can lock `.next/trace` causing EPERM during `next build` on Windows.
-  // Using a different dist dir avoids the stale locked file.
-  distDir: '.next_local',
+  // Use an alternate dist dir locally, but keep the default `.next` on Vercel
+  // (Vercel's Next builder expects the default output directory).
+  ...(process.env.VERCEL ? {} : { distDir: '.next_local' }),
   // Keep root routing unchanged; canonical runtime page is /shellrunners.
   images: {
     remotePatterns: [

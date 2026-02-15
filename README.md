@@ -9,7 +9,7 @@ ShellRunners is the first game in the MoltStation ecosystem. This repo contains 
 This fork is the basis for our game. We have refactored, expanded, and integrated it into the MoltStation platform with additional contracts, backend flows, and UX updates.
 
 ## Documentation Status
-1. Last updated: 2026-02-13
+1. Last updated: 2026-02-15
 2. This file reflects the current runtime-only scope after migration.
 
 ## How It Fits Into MoltStation
