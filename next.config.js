@@ -15,4 +15,33 @@ module.exports = {
     ],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
+  async headers() {
+    const frameAncestors = [
+      "https://moltstation.games",
+      "https://www.moltstation.games",
+      "http://127.0.0.1:3000",
+      "http://localhost:3000",
+    ].join(" ");
+
+    return [
+      {
+        source: "/shellrunners/spectate",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: `frame-ancestors ${frameAncestors};`,
+          },
+        ],
+      },
+      {
+        source: "/shellrunners",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: `frame-ancestors ${frameAncestors};`,
+          },
+        ],
+      },
+    ];
+  },
 };

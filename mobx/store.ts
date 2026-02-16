@@ -1590,6 +1590,31 @@ export class GlobalStore {
       await this.waitForTx(hash);
       notify('success', mode === 'upgrade' ? 'ShellRunner updated' : 'ShellRunner minted');
       await this.fetchUserNftsList(true);
+      const latestOwned = (this.userNftList ?? []).filter((n) => Number(n.tokenId) >= 0);
+      let resolvedTokenId: number | null =
+        mode === 'upgrade' && targetTokenId !== null ? targetTokenId : null;
+      if (resolvedTokenId === null && latestOwned.length > 0) {
+        resolvedTokenId = latestOwned
+          .map((n) => Number(n.tokenId))
+          .filter((n) => Number.isFinite(n) && n > 0)
+          .sort((a, b) => a - b)[0] ?? null;
+      }
+      if (resolvedTokenId !== null) {
+        const matched = latestOwned.find((n) => Number(n.tokenId) === resolvedTokenId);
+        await this.fetchRewardsApi(`/api/games/shellrunners/nft/record`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: this.accountAddress,
+            action: mode,
+            tokenId: resolvedTokenId,
+            score,
+            tokenURI: matched?.tokenUri ?? tokenURI,
+            metadataCid: payload.metadataCid ?? null,
+            txHash: String(hash),
+          }),
+        }).catch(() => {});
+      }
       await this.fetchUserNfts();
       return true;
     } catch (e) {

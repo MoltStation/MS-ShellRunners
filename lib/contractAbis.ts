@@ -44,11 +44,32 @@ export const shellRunnersAbi = [
   },
   {
     type: 'function',
+    name: 'userAddressToTokenId',
+    stateMutability: 'view',
+    inputs: [{ name: '', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
     name: 'generateShellRunner',
     stateMutability: 'nonpayable',
     inputs: [
       { name: '_score', type: 'uint256' },
       { name: '_tokenURI', type: 'string' },
+      { name: 'v', type: 'uint8' },
+      { name: 'r', type: 'bytes32' },
+      { name: 's', type: 'bytes32' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'upgradeShellRunner',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: '_score', type: 'uint256' },
+      { name: '_tokenURI', type: 'string' },
+      { name: '_tokenId', type: 'uint256' },
       { name: 'v', type: 'uint8' },
       { name: 'r', type: 'bytes32' },
       { name: 's', type: 'bytes32' },

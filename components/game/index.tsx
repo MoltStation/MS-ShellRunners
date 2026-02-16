@@ -120,6 +120,7 @@ const GameScreen = () => {
 
   const endGameCB = useCallback(
     async (score: number, metersTravelled: number, choseToMint: boolean) => {
+      postRuntimeEvent('runtime_score', { score: Math.floor(score), final: true });
       await state.snapshotRewardsScore(score);
       await state.trackGameEnd(score, metersTravelled, choseToMint);
       if (state.walletConnected) {
@@ -136,7 +137,7 @@ const GameScreen = () => {
         }
       }
     },
-    [state]
+    [state, postRuntimeEvent]
   );
 
   const goHomeCB = useCallback(() => {
@@ -169,8 +170,9 @@ const GameScreen = () => {
   const snapshotScoreCB = useCallback(
     (score: number) => {
       state.snapshotRewardsScore(score);
+      postRuntimeEvent('runtime_score', { score: Math.floor(score) });
     },
-    [state]
+    [state, postRuntimeEvent]
   );
 
   useEffect(() => {

@@ -33,6 +33,8 @@ contract ShellRunners is ERC721URIStorage, ReentrancyGuard {
 
   // Mapping from User address to high score
   mapping(address => uint256) public userAddressToHighScore;
+  // Mapping from user to their one allowed ShellRunner token id (0 = none).
+  mapping(address => uint256) public userAddressToTokenId;
 
   // Events
 
@@ -55,7 +57,7 @@ contract ShellRunners is ERC721URIStorage, ReentrancyGuard {
 
   // Constructor is called when the ShellRunners contract is deployed.
   constructor(address identityAddress, address signerAddress)
-    ERC721("ShellRunner", "SRUN")
+    ERC721("MoltStation ShellRunners", "MSSH")
   {
     require(identityAddress != address(0), "Invalid identity address");
     require(signerAddress != address(0), "Invalid signer address");
@@ -122,15 +124,17 @@ contract ShellRunners is ERC721URIStorage, ReentrancyGuard {
     bytes32 messageHash = message.toEthSignedMessageHash();
     address walletAddress = messageHash.recover(v, r, s);
     require(walletAddress == signedWalletAddress, "Invalid signature");
+    require(userAddressToTokenId[msg.sender] == 0, "ShellRunner already minted");
     require(
       _score > userAddressToHighScore[msg.sender],
       "Already minted at this score before"
     );
     setHighScore(_score, msg.sender);
+    _totalSupply.increment();
     uint256 _tokenID = totalSupply();
     _safeMint(msg.sender, _tokenID);
-    _totalSupply.increment();
     _setTokenURI(_tokenID, _tokenURI);
+    userAddressToTokenId[msg.sender] = _tokenID;
 
     emit NewShellRunnerGenerated(_tokenID);
   }
@@ -151,6 +155,12 @@ contract ShellRunners is ERC721URIStorage, ReentrancyGuard {
     bytes32 messageHash = message.toEthSignedMessageHash();
     address walletAddress = messageHash.recover(v, r, s);
     require(walletAddress == signedWalletAddress, "Invalid signature");
+    require(userAddressToTokenId[msg.sender] != 0, "No ShellRunner minted yet");
+    require(
+      userAddressToTokenId[msg.sender] == _tokenId,
+      "Upgrade token must match user primary token"
+    );
+    require(ownerOf(_tokenId) == msg.sender, "Not token owner");
     require(
       _score > userAddressToHighScore[msg.sender],
       "Already minted at this score before"
@@ -188,7 +198,7 @@ contract ShellRunners is ERC721URIStorage, ReentrancyGuard {
     NFTItem[] memory nfts = new NFTItem[](getBalanceOfUser(_user));
     uint256 totalNFTCount = totalSupply();
     uint256 curInd = 0;
-    for (uint256 i = 0; i < totalNFTCount; i++) {
+    for (uint256 i = 1; i <= totalNFTCount; i++) {
       if (ownerOf(i) == _user) {
         nfts[curInd++] = NFTItem({ tokenId: i, tokenURI: tokenURI(i) });
       }
@@ -199,8 +209,8 @@ contract ShellRunners is ERC721URIStorage, ReentrancyGuard {
   function getAllNFTs() public view returns (NFTItem[] memory) {
     uint256 totalNFTCount = totalSupply();
     NFTItem[] memory nfts = new NFTItem[](totalNFTCount);
-    for (uint256 i = 0; i < totalNFTCount; i++) {
-      nfts[i] = NFTItem({ tokenId: i, tokenURI: tokenURI(i) });
+    for (uint256 i = 1; i <= totalNFTCount; i++) {
+      nfts[i - 1] = NFTItem({ tokenId: i, tokenURI: tokenURI(i) });
     }
     return nfts;
   }
