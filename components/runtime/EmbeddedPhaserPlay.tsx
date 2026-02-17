@@ -152,7 +152,19 @@ export default function EmbeddedPhaserPlay() {
       if (mode && mode !== 'play') return;
       if (!token || !slug || !msgSessionId) return;
       if (msgSessionId !== sessionId) return;
-      setHandshake({ token, slug, sessionId: msgSessionId });
+      setHandshake((prev) => {
+        // Core can post the same token multiple times (load + ready retries).
+        // Ignore identical handshakes so one-time WS tokens are not replayed.
+        if (
+          prev &&
+          prev.token === token &&
+          prev.slug === slug &&
+          prev.sessionId === msgSessionId
+        ) {
+          return prev;
+        }
+        return { token, slug, sessionId: msgSessionId };
+      });
     }
 
     window.addEventListener('message', onMessage);

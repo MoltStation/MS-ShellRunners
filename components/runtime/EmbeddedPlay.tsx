@@ -110,7 +110,17 @@ export default function EmbeddedPlay() {
       if (mode && mode !== 'play') return;
       if (!token || !slug || !msgSessionId) return;
       if (msgSessionId !== sessionId) return;
-      setHandshake({ token, slug, sessionId: msgSessionId });
+      setHandshake((prev) => {
+        if (
+          prev &&
+          prev.token === token &&
+          prev.slug === slug &&
+          prev.sessionId === msgSessionId
+        ) {
+          return prev;
+        }
+        return { token, slug, sessionId: msgSessionId };
+      });
     }
 
     window.addEventListener('message', onMessage);
