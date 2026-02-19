@@ -901,13 +901,24 @@ export class GlobalStore {
 
       const identityId = this.resolveIdentityId();
       if (popt && identityId && identityId > 0) {
-        const gameId = this.computeGameId('SHELLRUNNERS');
-        const poptId = await read({
-          address: popt,
-          abi: poptAbi,
-          functionName: 'getPoPTId',
-          args: [gameId, BigInt(identityId)],
-        });
+        let poptId: unknown = 0n;
+        try {
+          poptId = await read({
+            address: popt,
+            abi: poptAbi,
+            functionName: 'getPoPTId',
+            args: [BigInt(identityId)],
+          });
+        } catch {
+          // Backward compatibility with older deployments that still use getPoPTId(bytes32,uint256)
+          const gameId = this.computeGameId('SHELLRUNNERS');
+          poptId = await read({
+            address: popt,
+            abi: poptAbi,
+            functionName: 'getPoPTId',
+            args: [gameId, BigInt(identityId)],
+          });
+        }
         const parsed = Number(poptId);
         if (Number.isFinite(parsed) && parsed > 0) {
           poptTokenId = parsed;

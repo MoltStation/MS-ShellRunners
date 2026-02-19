@@ -3,11 +3,26 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import FrameCanvas from '../../components/runtime/FrameCanvas';
 
-const ALLOWED_PARENT_ORIGINS = new Set([
-  'https://moltstation.games',
-  'https://www.moltstation.games',
-  'http://127.0.0.1:3000',
-  'http://localhost:3000',
+function resolveAllowedParentOrigins() {
+  const defaults = [
+    'https://moltstation.games',
+    'https://www.moltstation.games',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+  ];
+  const extra = String(process.env.NEXT_PUBLIC_CORE_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return new Set([...defaults, ...extra]);
+}
+
+const ALLOWED_PARENT_ORIGINS = resolveAllowedParentOrigins();
+const TOKEN_RECOVERY_REASONS = new Set([
+  'TOKEN_REPLAYED',
+  'TOKEN_EXPIRED',
+  'TOKEN_NOT_FOUND',
+  'INVALID_TOKEN',
 ]);
 
 function resolveWsBaseFromApi(apiBase: string) {
@@ -16,6 +31,15 @@ function resolveWsBaseFromApi(apiBase: string) {
   if (raw.startsWith('https://')) return raw.replace(/^https:\/\//, 'wss://');
   if (raw.startsWith('http://')) return raw.replace(/^http:\/\//, 'ws://');
   return null;
+}
+
+function resolveApiBase() {
+  const explicit = String(process.env.NEXT_PUBLIC_MOLTBOT_API_URL || '').trim();
+  if (explicit) return explicit.replace(/\/+$/, '');
+  if (typeof window === 'undefined') return 'https://api.moltstation.games';
+  const host = String(window.location.hostname || '').toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:4100';
+  return 'https://api.moltstation.games';
 }
 
 function formatElapsed(ms: number) {
@@ -47,8 +71,7 @@ export default function ShellRunnersSpectatePage() {
   const wsKeyRef = useRef(0);
   const closingRef = useRef(false);
 
-  const apiBase =
-    (process.env.NEXT_PUBLIC_MOLTBOT_API_URL as string) || 'http://localhost:4100';
+  const apiBase = useMemo(() => resolveApiBase(), []);
   const wsBase = useMemo(() => resolveWsBaseFromApi(apiBase), [apiBase]);
 
   useEffect(() => {
@@ -148,10 +171,28 @@ export default function ShellRunnersSpectatePage() {
       // In dev with React strict mode, effects mount/unmount twice; ignore stale sockets.
       if (wsKey !== wsKeyRef.current) return;
       if (closingRef.current) return;
+      const reason = String(evt?.reason || '').trim();
+      if (TOKEN_RECOVERY_REASONS.has(reason)) {
+        setStatus('connecting');
+        setError('Refreshing spectate token...');
+        try {
+          window.parent?.postMessage(
+            {
+              source: 'moltstation-runtime',
+              event: 'spectate_token_needed',
+              payload: { reason, sessionId, slug: handshake.slug },
+            },
+            '*'
+          );
+        } catch {
+          // ignore
+        }
+        return;
+      }
       if (status !== 'error') {
         setStatus('error');
       }
-      setError(evt?.reason ? `Disconnected: ${evt.reason}` : 'Disconnected.');
+      setError(reason ? `Disconnected: ${reason}` : 'Disconnected.');
     };
 
     return () => {

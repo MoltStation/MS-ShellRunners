@@ -11,11 +11,34 @@ const SIDE_GRASS_FILL_W = 56;
 const SIDE_GRASS_EDGE_W = 38;
 const SIDE_OVERLAY_W = SIDE_BANK_W + SIDE_GRASS_FILL_W + SIDE_GRASS_EDGE_W;
 
-const ALLOWED_PARENT_ORIGINS = new Set([
-  'https://moltstation.games',
-  'https://www.moltstation.games',
-  'http://127.0.0.1:3000',
-  'http://localhost:3000',
+function resolveAllowedParentOrigins() {
+  const defaults = [
+    'https://moltstation.games',
+    'https://www.moltstation.games',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+  ];
+  const extra = String(process.env.NEXT_PUBLIC_CORE_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return new Set([...defaults, ...extra]);
+}
+
+const ALLOWED_PARENT_ORIGINS = resolveAllowedParentOrigins();
+const TOKEN_RECOVERY_REASONS = new Set([
+  'TOKEN_REPLAYED',
+  'TOKEN_EXPIRED',
+  'TOKEN_NOT_FOUND',
+  'INVALID_TOKEN',
+]);
+const CRITICAL_ASSET_KEYS = new Set([
+  'pawn',
+  'water_1',
+  'left_bank_1',
+  'right_bank_1',
+  'fill_grass',
+  'grass_1',
 ]);
 
 function resolveWsBaseFromApi(apiBase: string) {
@@ -24,6 +47,15 @@ function resolveWsBaseFromApi(apiBase: string) {
   if (raw.startsWith('https://')) return raw.replace(/^https:\/\//, 'wss://');
   if (raw.startsWith('http://')) return raw.replace(/^http:\/\//, 'ws://');
   return null;
+}
+
+function resolveApiBase() {
+  const explicit = String(process.env.NEXT_PUBLIC_MOLTBOT_API_URL || '').trim();
+  if (explicit) return explicit.replace(/\/+$/, '');
+  if (typeof window === 'undefined') return 'https://api.moltstation.games';
+  const host = String(window.location.hostname || '').toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:4100';
+  return 'https://api.moltstation.games';
 }
 
 function formatElapsed(ms: number) {
@@ -79,7 +111,7 @@ export default function EmbeddedPhaserPlay() {
   );
   const [renderError, setRenderError] = useState<string>('');
   const [hudMinimized, setHudMinimized] = useState(false);
-  const loadFailedRef = useRef(false);
+  const criticalLoadFailedRef = useRef(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const wsKeyRef = useRef(0);
@@ -107,8 +139,7 @@ export default function EmbeddedPhaserPlay() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastSfxTickRef = useRef<number>(-1);
 
-  const apiBase =
-    (process.env.NEXT_PUBLIC_MOLTBOT_API_URL as string) || 'http://localhost:4100';
+  const apiBase = useMemo(() => resolveApiBase(), []);
   const wsBase = useMemo(() => resolveWsBaseFromApi(apiBase), [apiBase]);
   const coreOrigin = useMemo(
     () =>
@@ -208,6 +239,35 @@ export default function EmbeddedPhaserPlay() {
             source: 'moltstation-runtime',
             event: 'runtime_exit',
             payload: { reason, sessionId },
+          },
+          '*'
+        );
+      } catch {
+        // ignore
+      }
+      return false;
+    }
+  };
+
+  const postPlayTokenNeeded = (reason: string) => {
+    try {
+      if (typeof window === 'undefined' || !isEmbedded || !window.parent) return false;
+      window.parent.postMessage(
+        {
+          source: 'moltstation-runtime',
+          event: 'play_token_needed',
+          payload: { reason, sessionId, slug: handshake?.slug || 'shellrunners' },
+        },
+        coreOrigin
+      );
+      return true;
+    } catch {
+      try {
+        window.parent?.postMessage(
+          {
+            source: 'moltstation-runtime',
+            event: 'play_token_needed',
+            payload: { reason, sessionId, slug: handshake?.slug || 'shellrunners' },
           },
           '*'
         );
@@ -327,6 +387,12 @@ export default function EmbeddedPhaserPlay() {
         postRuntimeExit(reason === 'EXIT' ? 'exit' : 'game_over');
         return;
       }
+      if (TOKEN_RECOVERY_REASONS.has(reason)) {
+        setStatus('connecting');
+        setError('Refreshing play token...');
+        postPlayTokenNeeded(reason);
+        return;
+      }
       setStatus('error');
       setError(reason ? `Disconnected: ${reason}` : 'Disconnected.');
     };
@@ -402,7 +468,7 @@ export default function EmbeddedPhaserPlay() {
         try {
           setRenderStatus('loading');
           setRenderError('');
-          loadFailedRef.current = false;
+          criticalLoadFailedRef.current = false;
         } catch {
           // ignore
         }
@@ -410,9 +476,13 @@ export default function EmbeddedPhaserPlay() {
         // Surface asset load failures (helps debug "black screen" cases).
         this.load.on('loaderror', (_: any, file: any) => {
           try {
-            loadFailedRef.current = true;
-            setRenderStatus('error');
-            setRenderError(`Asset failed: ${String(file?.key || '')} (${String(file?.src || '')})`);
+            const key = String(file?.key || '').trim();
+            const src = String(file?.src || '').trim();
+            if (CRITICAL_ASSET_KEYS.has(key)) {
+              criticalLoadFailedRef.current = true;
+              setRenderStatus('error');
+            }
+            setRenderError(`Asset failed: ${key} (${src})`);
           } catch {
             // ignore
           }
@@ -451,7 +521,7 @@ export default function EmbeddedPhaserPlay() {
 
       scene.create = function create() {
         try {
-          if (!loadFailedRef.current) {
+          if (!criticalLoadFailedRef.current) {
             setRenderStatus('ready');
             setRenderError('');
           }

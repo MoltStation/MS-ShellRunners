@@ -237,6 +237,13 @@ export const poptAbi = [
     type: 'function',
     name: 'getPoPTId',
     stateMutability: 'view',
+    inputs: [{ name: 'agentIdentityId', type: 'uint256' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'getPoPTId',
+    stateMutability: 'view',
     inputs: [
       { name: 'gameId', type: 'bytes32' },
       { name: 'agentIdentityId', type: 'uint256' },
