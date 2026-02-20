@@ -8,6 +8,8 @@ import { ShellRunner } from '../ui-objects/ShellRunner';
 
 const RIPPLE_ALPHA_DEC = 0.01;
 const RIPPLE_SCALE_INC = 0.01;
+const SIDE_BANK_W = 148;
+const PLAYABLE_LANE_INSET_X = SIDE_BANK_W + 4;
 
 export class Pawn {
   scene: AbstractScene;
@@ -147,7 +149,7 @@ export class Pawn {
       const direction = this.scene.inputManager.getInputDirection();
       if (direction !== EInputDirection.NONE) {
         this.shellRunner.x += delta * (direction === EInputDirection.LEFT ? -this.speed : this.speed);
-        const halfWidth = this.scene.grs.designDim.width * 0.5 - 200;
+        const halfWidth = this.scene.grs.designDim.width * 0.5 - PLAYABLE_LANE_INSET_X;
         if (this.shellRunner.x <= CAM_CENTER.x - halfWidth) {
           this.shellRunner.x = CAM_CENTER.x - halfWidth;
         } else if (this.shellRunner.x >= CAM_CENTER.x + halfWidth) {

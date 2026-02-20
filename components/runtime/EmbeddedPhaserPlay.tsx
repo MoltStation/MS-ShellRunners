@@ -6,10 +6,8 @@ import FrameCanvas from './FrameCanvas';
 
 const DESIGN_W = 1920;
 const DESIGN_H = 1080;
-const SIDE_BANK_W = 170;
-const SIDE_GRASS_FILL_W = 56;
-const SIDE_GRASS_EDGE_W = 38;
-const SIDE_OVERLAY_W = SIDE_BANK_W + SIDE_GRASS_FILL_W + SIDE_GRASS_EDGE_W;
+const SIDE_BANK_W = 148;
+const BANK_VERTICAL_STRETCH = 80;
 
 function resolveAllowedParentOrigins() {
   const defaults = [
@@ -130,10 +128,6 @@ export default function EmbeddedPhaserPlay() {
     water?: any;
     leftBank?: any;
     rightBank?: any;
-    grassLeft?: any;
-    grassRight?: any;
-    grassEdgeLeft?: any;
-    grassEdgeRight?: any;
   }>({ entities: new Map() });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -540,57 +534,12 @@ export default function EmbeddedPhaserPlay() {
         water.setAlpha(0.95);
         phaserObjectsRef.current.water = water;
 
-        // First draw stretched grass all the way to the wall.
-        const grassLeft = this.add.tileSprite(
-          SIDE_OVERLAY_W * 0.5,
-          DESIGN_H * 0.5,
-          SIDE_OVERLAY_W,
-          DESIGN_H,
-          'fill_grass'
-        );
-        grassLeft.setOrigin(0.5, 0.5);
-        grassLeft.setAlpha(0.58);
-        phaserObjectsRef.current.grassLeft = grassLeft;
-
-        const grassRight = this.add.tileSprite(
-          DESIGN_W - SIDE_OVERLAY_W * 0.5,
-          DESIGN_H * 0.5,
-          SIDE_OVERLAY_W,
-          DESIGN_H,
-          'fill_grass'
-        );
-        grassRight.setOrigin(0.5, 0.5);
-        grassRight.setAlpha(0.58);
-        phaserObjectsRef.current.grassRight = grassRight;
-
-        const grassEdgeLeft = this.add.tileSprite(
-          SIDE_OVERLAY_W - SIDE_GRASS_EDGE_W * 0.5,
-          DESIGN_H * 0.5,
-          SIDE_GRASS_EDGE_W,
-          DESIGN_H,
-          'grass_1'
-        );
-        grassEdgeLeft.setOrigin(0.5, 0.5);
-        grassEdgeLeft.setAlpha(0.85);
-        phaserObjectsRef.current.grassEdgeLeft = grassEdgeLeft;
-
-        const grassEdgeRight = this.add.tileSprite(
-          DESIGN_W - SIDE_OVERLAY_W + SIDE_GRASS_EDGE_W * 0.5,
-          DESIGN_H * 0.5,
-          SIDE_GRASS_EDGE_W,
-          DESIGN_H,
-          'grass_1'
-        );
-        grassEdgeRight.setOrigin(0.5, 0.5);
-        grassEdgeRight.setAlpha(0.85);
-        phaserObjectsRef.current.grassEdgeRight = grassEdgeRight;
-
-        // Then place the sand bank on top.
+        // Draw only side sand/coral banks (no grass filler).
         const leftBank = this.add.tileSprite(
           SIDE_BANK_W * 0.5,
           DESIGN_H * 0.5,
           SIDE_BANK_W,
-          DESIGN_H,
+          DESIGN_H + BANK_VERTICAL_STRETCH,
           'left_bank_1'
         );
         leftBank.setOrigin(0.5, 0.5);
@@ -601,7 +550,7 @@ export default function EmbeddedPhaserPlay() {
           DESIGN_W - SIDE_BANK_W * 0.5,
           DESIGN_H * 0.5,
           SIDE_BANK_W,
-          DESIGN_H,
+          DESIGN_H + BANK_VERTICAL_STRETCH,
           'right_bank_1'
         );
         rightBank.setOrigin(0.5, 0.5);
@@ -716,7 +665,7 @@ export default function EmbeddedPhaserPlay() {
       } else if (e.k === 'collectible') {
         obj.setDisplaySize(100, 100);
       } else if (e.k === 'powerup') {
-        obj.setDisplaySize(150, 150);
+        obj.setDisplaySize(96, 96);
       }
     }
 
@@ -746,10 +695,6 @@ export default function EmbeddedPhaserPlay() {
     }
     if (store.leftBank) store.leftBank.tilePositionY = scroll * 0.32;
     if (store.rightBank) store.rightBank.tilePositionY = scroll * 0.32;
-    if (store.grassLeft) store.grassLeft.tilePositionY = scroll * 0.55;
-    if (store.grassRight) store.grassRight.tilePositionY = scroll * 0.55;
-    if (store.grassEdgeLeft) store.grassEdgeLeft.tilePositionY = scroll * 0.75;
-    if (store.grassEdgeRight) store.grassEdgeRight.tilePositionY = scroll * 0.75;
   }, [frame]);
 
   useEffect(() => {
@@ -828,6 +773,30 @@ export default function EmbeddedPhaserPlay() {
         }}
       />
 
+      {/* Runtime logo (always top-left). */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 14,
+          top: 14,
+          width: 172,
+          opacity: 0.82,
+          pointerEvents: 'none',
+          zIndex: 20,
+        }}>
+        <img
+          src='/assets/img/logo.png'
+          alt=''
+          aria-hidden='true'
+          style={{
+            width: '100%',
+            height: 'auto',
+            display: 'block',
+            filter: 'drop-shadow(0 0 14px rgba(16, 174, 255, 0.45))',
+          }}
+        />
+      </div>
+
       {/* HUD */}
       <div
         style={{
@@ -849,31 +818,9 @@ export default function EmbeddedPhaserPlay() {
             boxShadow: '0 0 0 1px rgba(255,255,255,0.05), 0 12px 28px rgba(0,0,0,0.55)',
             minWidth: 260,
             position: 'relative',
-            overflow: 'hidden',
+            overflow: 'visible',
           }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
-              width: 96,
-              opacity: 0.2,
-              pointerEvents: 'none',
-              zIndex: 0,
-            }}>
-            <img
-              src='/assets/img/logo.png'
-              alt=''
-              aria-hidden='true'
-              style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block',
-                filter: 'drop-shadow(0 0 12px rgba(16, 174, 255, 0.35))',
-              }}
-            />
-          </div>
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
               <strong>ShellRunners</strong>

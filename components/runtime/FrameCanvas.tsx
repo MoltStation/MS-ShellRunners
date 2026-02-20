@@ -5,14 +5,12 @@ import { createAssetCache, getEntityImage, resolveImagesForFrame } from './frame
 
 const DESIGN_W = 1920;
 const DESIGN_H = 1080;
-const SIDE_BANK_W = 170;
-const SIDE_GRASS_FILL_W = 56;
-const SIDE_GRASS_EDGE_W = 38;
-const SIDE_OVERLAY_W = SIDE_BANK_W + SIDE_GRASS_FILL_W + SIDE_GRASS_EDGE_W;
+const SIDE_BANK_W = 148;
+const BANK_VERTICAL_STRETCH = 80;
 
 const PAWN_RADIUS = 20;
 const COLLECTIBLE_RADIUS = 50;
-const POWER_UP_RADIUS = 75;
+const POWER_UP_RADIUS = 48;
 
 function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
@@ -173,8 +171,7 @@ export default function FrameCanvas({
     ctx.fillRect(0, 0, DESIGN_W, DESIGN_H);
 
     const bankW = SIDE_BANK_W;
-    const edgeW = SIDE_GRASS_EDGE_W;
-    const laneX = SIDE_OVERLAY_W;
+    const laneX = SIDE_BANK_W;
     const laneW = DESIGN_W - laneX * 2;
 
     // Water across full width so transparent pixels in side assets never show black.
@@ -188,34 +185,26 @@ export default function FrameCanvas({
       ctx.fillRect(laneX, 0, laneW, DESIGN_H);
     }
 
-    // Draw stretched grass all the way to the wall.
-    const grassLeftX = 0;
-    const grassRightX = DESIGN_W - SIDE_OVERLAY_W;
-    const edgeLeftX = SIDE_OVERLAY_W - edgeW;
-    const edgeRightX = DESIGN_W - SIDE_OVERLAY_W;
-    drawImageStretched(ctx, cache.fillGrass, grassLeftX, 0, SIDE_OVERLAY_W, DESIGN_H, 0.58);
-    drawImageStretched(ctx, cache.fillGrass, grassRightX, 0, SIDE_OVERLAY_W, DESIGN_H, 0.58);
-    drawImageStretched(ctx, cache.grassEdge, edgeLeftX, 0, edgeW, DESIGN_H, 0.85);
-    drawImageStretched(ctx, cache.grassEdge, edgeRightX, 0, edgeW, DESIGN_H, 0.85);
-
-    // Place sand banks on top.
-    const drewLeftBank = drawImageStretched(ctx, cache.leftBank, 0, 0, bankW, DESIGN_H, 0.94);
+    // Draw only side banks (grass overlay removed).
+    const bankY = -BANK_VERTICAL_STRETCH * 0.5;
+    const bankH = DESIGN_H + BANK_VERTICAL_STRETCH;
+    const drewLeftBank = drawImageStretched(ctx, cache.leftBank, 0, bankY, bankW, bankH, 0.94);
     const drewRightBank = drawImageStretched(
       ctx,
       cache.rightBank,
       DESIGN_W - bankW,
-      0,
+      bankY,
       bankW,
-      DESIGN_H,
+      bankH,
       0.94
     );
     if (!drewLeftBank) {
       ctx.fillStyle = '#061018';
-      ctx.fillRect(0, 0, bankW, DESIGN_H);
+      ctx.fillRect(0, bankY, bankW, bankH);
     }
     if (!drewRightBank) {
       ctx.fillStyle = '#061018';
-      ctx.fillRect(DESIGN_W - bankW, 0, bankW, DESIGN_H);
+      ctx.fillRect(DESIGN_W - bankW, bankY, bankW, bankH);
     }
 
     // Soft scanline overlay.
