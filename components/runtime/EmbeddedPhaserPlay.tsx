@@ -63,6 +63,10 @@ function formatElapsed(ms: number) {
   return `${m}:${String(r).padStart(2, '0')}`;
 }
 
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
 function resolveCoreOriginFromQuery(fallback: string) {
   if (typeof window === 'undefined') return fallback;
   const fallbackUrl = String(fallback || '').trim() || 'https://moltstation.games';
@@ -731,6 +735,11 @@ export default function EmbeddedPhaserPlay() {
   const scoreHigh = Number(frame?.score?.high ?? 0);
   const phase = String(frame?.phase ?? '');
   const entityCount = Array.isArray(frame?.entities) ? frame!.entities!.length : 0;
+  const livesCurrent = Math.max(0, Number((frame as any)?.lives ?? 0));
+  const livesMax = Math.max(1, Number((frame as any)?.livesMax ?? 3));
+  const hungerCurrent = Math.max(0, Number((frame as any)?.hunger ?? 0));
+  const hungerMax = Math.max(1, Number((frame as any)?.hungerMax ?? 220));
+  const hungerRatio = clamp01(hungerCurrent / hungerMax);
   const isPaused = phase === 'paused';
 
   const togglePause = () => {
@@ -857,6 +866,31 @@ export default function EmbeddedPhaserPlay() {
                   <div>
                     Score: {scoreCurrent} (high {scoreHigh})
                   </div>
+                  <div>
+                    Lives: {livesCurrent}/{livesMax}
+                  </div>
+                  <div>
+                    Hunger: {Math.floor(hungerCurrent)}/{hungerMax}
+                  </div>
+                  <div
+                    style={{
+                      height: 7,
+                      borderRadius: 999,
+                      overflow: 'hidden',
+                      border: '1px solid rgba(215,247,255,0.22)',
+                      background: 'rgba(2,7,16,0.72)',
+                    }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${Math.round(hungerRatio * 100)}%`,
+                        background:
+                          hungerRatio >= 0.9
+                            ? 'linear-gradient(90deg, rgba(255,92,92,0.95), rgba(255,140,89,0.95))'
+                            : 'linear-gradient(90deg, rgba(71,221,255,0.92), rgba(255,154,61,0.9))',
+                      }}
+                    />
+                  </div>
                   <div>Entities: {entityCount}</div>
                 </div>
                 {error ? (
@@ -866,7 +900,7 @@ export default function EmbeddedPhaserPlay() {
             ) : null}
             {hudMinimized ? (
               <div style={{ marginTop: 8, fontSize: 12, opacity: 0.78 }}>
-                Score {scoreCurrent} | {formatElapsed(elapsed)}
+                Score {scoreCurrent} | L{livesCurrent} | {formatElapsed(elapsed)}
               </div>
             ) : null}
           </div>
