@@ -34,3 +34,7 @@
 4. Run full e2e test pass against deployed Base Sepolia contracts.
 5. Add explicit UI telemetry for failed snapshot/payout retries.
 6. Replace GPU browser bundle with a Turbopack-friendly import path to remove remaining build warnings.
+## 2026-02-20 Update
+1. Identity transfer + listing guard for open payouts implemented across contracts/UI. --DONE
+2. Deployed new MSID + Rewards on Base Sepolia and rewired required roles. --DONE
+3. Updated local + Railway + Vercel env addresses to new MSID/Rewards. --DONE

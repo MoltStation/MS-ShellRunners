@@ -197,6 +197,24 @@ export const rewardsAbi = [
     inputs: [],
     outputs: [{ type: 'uint256' }],
   },
+  {
+    type: 'function',
+    name: 'getScorebank',
+    stateMutability: 'view',
+    inputs: [{ name: 'agent', type: 'address' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'score', type: 'uint256' },
+          { name: 'lastSnapshotAt', type: 'uint256' },
+          { name: 'sessionId', type: 'bytes32' },
+          { name: 'sessionExpiresAt', type: 'uint256' },
+          { name: 'identityId', type: 'uint256' },
+        ],
+      },
+    ],
+  },
 ] as const;
 
 export const erc721MetadataAbi = [

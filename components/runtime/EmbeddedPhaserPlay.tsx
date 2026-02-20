@@ -449,6 +449,8 @@ export default function EmbeddedPhaserPlay() {
   // Phaser renderer: create once.
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!sessionId) return;
+    if (!isEmbedded) return;
     if (!phaserParentRef.current) return;
     if (phaserRef.current) return;
 
@@ -531,40 +533,45 @@ export default function EmbeddedPhaserPlay() {
         phaserObjectsRef.current.bg = g;
         g.fillStyle(0x0b2b46, 1);
         g.fillRect(0, 0, DESIGN_W, DESIGN_H);
+        g.setDepth(-40);
 
-        // Water across full width so transparent pixels in side assets never show black gaps.
-        const water = this.add.tileSprite(DESIGN_W * 0.5, DESIGN_H * 0.5, DESIGN_W, DESIGN_H, 'water_1');
+        // Use stretched images (not tileSprites) for non-power-of-two assets to avoid
+        // WebGL repeat issues that can hide backgrounds on some browsers/GPUs.
+        const water = this.add.image(DESIGN_W * 0.5, DESIGN_H * 0.5, 'water_1');
         water.setOrigin(0.5, 0.5);
+        water.setDisplaySize(DESIGN_W, DESIGN_H);
         water.setAlpha(0.95);
+        water.setDepth(-30);
         phaserObjectsRef.current.water = water;
 
         // Draw only side sand/coral banks (no grass filler).
-        const leftBank = this.add.tileSprite(
+        const leftBank = this.add.image(
           SIDE_BANK_W * 0.5,
           DESIGN_H * 0.5,
-          SIDE_BANK_W,
-          DESIGN_H + BANK_VERTICAL_STRETCH,
           'left_bank_1'
         );
         leftBank.setOrigin(0.5, 0.5);
+        leftBank.setDisplaySize(SIDE_BANK_W, DESIGN_H + BANK_VERTICAL_STRETCH);
         leftBank.setAlpha(0.94);
+        leftBank.setDepth(-20);
         phaserObjectsRef.current.leftBank = leftBank;
 
-        const rightBank = this.add.tileSprite(
+        const rightBank = this.add.image(
           DESIGN_W - SIDE_BANK_W * 0.5,
           DESIGN_H * 0.5,
-          SIDE_BANK_W,
-          DESIGN_H + BANK_VERTICAL_STRETCH,
           'right_bank_1'
         );
         rightBank.setOrigin(0.5, 0.5);
+        rightBank.setDisplaySize(SIDE_BANK_W, DESIGN_H + BANK_VERTICAL_STRETCH);
         rightBank.setAlpha(0.94);
+        rightBank.setDepth(-20);
         phaserObjectsRef.current.rightBank = rightBank;
 
         const pawn = this.add.image(960, 972, 'pawn');
         pawn.setOrigin(0.5, 0.5);
         pawn.setDisplaySize(140, 140);
         pawn.setAlpha(0.95);
+        pawn.setDepth(20);
         phaserObjectsRef.current.pawn = pawn;
       };
 
@@ -604,7 +611,7 @@ export default function EmbeddedPhaserPlay() {
       phaserSceneRef.current = null;
       phaserObjectsRef.current = { entities: new Map() };
     };
-  }, []);
+  }, [isEmbedded, sessionId]);
 
   // If Phaser claims it's ready but the canvas isn't mounted, surface an error so we show the fallback renderer.
   useEffect(() => {
@@ -634,8 +641,8 @@ export default function EmbeddedPhaserPlay() {
     if (!scene || !frame) return;
     const store = phaserObjectsRef.current;
     if (!store || !store.pawn) return;
-    // Avoid applying frames before the scene is booted/created (can happen if frames arrive very fast).
-    if (!(scene as any).sys || !(scene as any).sys.isBooted) return;
+    const sys = (scene as any).sys;
+    if (!sys || sys.isDestroyed) return;
     const existing = store.entities;
 
     const entities: FrameEntity[] = Array.isArray(frame.entities) ? (frame.entities as any) : [];
@@ -660,6 +667,7 @@ export default function EmbeddedPhaserPlay() {
           continue;
         }
         obj.setOrigin(0.5, 0.5);
+        obj.setDepth(12);
         existing.set(id, obj);
       }
 
@@ -693,12 +701,18 @@ export default function EmbeddedPhaserPlay() {
     }
 
     const scroll = Number(frame.tMs ?? 0) * 0.12;
-    if (store.water) {
-      store.water.tilePositionY = scroll * 1.2;
-      store.water.tilePositionX = scroll * 0.08;
+    if (store.water?.setPosition) {
+      store.water.setPosition(DESIGN_W * 0.5 + Math.sin(scroll * 0.002) * 2, DESIGN_H * 0.5);
     }
-    if (store.leftBank) store.leftBank.tilePositionY = scroll * 0.32;
-    if (store.rightBank) store.rightBank.tilePositionY = scroll * 0.32;
+    if (store.leftBank?.setPosition) {
+      store.leftBank.setPosition(SIDE_BANK_W * 0.5, DESIGN_H * 0.5 + Math.sin(scroll * 0.0015) * 1.5);
+    }
+    if (store.rightBank?.setPosition) {
+      store.rightBank.setPosition(
+        DESIGN_W - SIDE_BANK_W * 0.5,
+        DESIGN_H * 0.5 + Math.sin(scroll * 0.0015) * 1.5
+      );
+    }
   }, [frame]);
 
   useEffect(() => {
@@ -737,6 +751,9 @@ export default function EmbeddedPhaserPlay() {
   const entityCount = Array.isArray(frame?.entities) ? frame!.entities!.length : 0;
   const livesCurrent = Math.max(0, Number((frame as any)?.lives ?? 0));
   const livesMax = Math.max(1, Number((frame as any)?.livesMax ?? 3));
+  const livesHearts = Array.from({ length: livesMax }, (_, idx) =>
+    idx < livesCurrent ? '\u2764\ufe0f' : '\ud83e\udd0d'
+  ).join(' ');
   const hungerCurrent = Math.max(0, Number((frame as any)?.hunger ?? 0));
   const hungerMax = Math.max(1, Number((frame as any)?.hungerMax ?? 220));
   const hungerRatio = clamp01(hungerCurrent / hungerMax);
@@ -866,8 +883,13 @@ export default function EmbeddedPhaserPlay() {
                   <div>
                     Score: {scoreCurrent} (high {scoreHigh})
                   </div>
-                  <div>
-                    Lives: {livesCurrent}/{livesMax}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>Lives:</span>
+                    <span
+                      aria-label={`Lives ${livesCurrent} of ${livesMax}`}
+                      style={{ letterSpacing: 1, fontSize: 16, lineHeight: 1 }}>
+                      {livesHearts}
+                    </span>
                   </div>
                   <div>
                     Hunger: {Math.floor(hungerCurrent)}/{hungerMax}
