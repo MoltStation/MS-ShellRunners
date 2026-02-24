@@ -49,6 +49,11 @@ function formatElapsed(ms: number) {
   return `${m}:${String(r).padStart(2, '0')}`;
 }
 
+function clamp01(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
 type SpectateHandshake = {
   token: string;
   sessionId: string;
@@ -229,6 +234,16 @@ export default function ShellRunnersSpectatePage() {
   const elapsed = Number(frame?.tMs ?? 0);
   const spectators = frame?.spectators ?? null;
   const phase = String(frame?.phase ?? '');
+  const entityCount = Array.isArray(frame?.entities) ? frame.entities.length : 0;
+  const livesCurrent = Math.max(0, Number((frame as any)?.lives ?? 0));
+  const livesMax = Math.max(1, Number((frame as any)?.livesMax ?? 3));
+  const livesHearts = Array.from({ length: livesMax }, (_, idx) =>
+    idx < livesCurrent ? '\u2764\ufe0f' : '\ud83e\udd0d'
+  ).join(' ');
+  const hungerCurrent = Math.max(0, Number((frame as any)?.hunger ?? 0));
+  const hungerMax = Math.max(1, Number((frame as any)?.hungerMax ?? 220));
+  const hungerRatio = clamp01(hungerCurrent / hungerMax);
+  const renderStatus = Array.isArray(frame?.entities) && frame.entities.length > 0 ? 'ready' : 'waiting';
 
   return (
     <main
@@ -267,7 +282,7 @@ export default function ShellRunnersSpectatePage() {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-            <strong>ShellRunners Live</strong>
+            <strong>ShellRunners</strong>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ opacity: 0.75, fontSize: 12 }}>
                 {status === 'connected' ? phase || 'live' : status}
@@ -293,11 +308,42 @@ export default function ShellRunnersSpectatePage() {
           {!hudMinimized ? (
             <>
               <div style={{ marginTop: 10, display: 'grid', gap: 6, fontSize: 12, opacity: 0.92 }}>
-                <div style={{ opacity: 0.75, fontSize: 12 }}>session: {sessionId}</div>
+                <div style={{ opacity: 0.75, fontSize: 12 }}>Renderer: {renderStatus}</div>
                 <div>Elapsed: {formatElapsed(elapsed)}</div>
                 <div>
                   Score: {scoreCurrent} (high {scoreHigh})
                 </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>Lives:</span>
+                  <span
+                    aria-label={`Lives ${livesCurrent} of ${livesMax}`}
+                    style={{ letterSpacing: 1, fontSize: 16, lineHeight: 1 }}>
+                    {livesHearts}
+                  </span>
+                </div>
+                <div>
+                  Hunger: {Math.floor(hungerCurrent)}/{hungerMax}
+                </div>
+                <div
+                  style={{
+                    height: 7,
+                    borderRadius: 999,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(215,247,255,0.22)',
+                    background: 'rgba(2,7,16,0.72)',
+                  }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.round(hungerRatio * 100)}%`,
+                      background:
+                        hungerRatio >= 0.9
+                          ? 'linear-gradient(90deg, rgba(255,92,92,0.95), rgba(255,140,89,0.95))'
+                          : 'linear-gradient(90deg, rgba(71,221,255,0.92), rgba(255,154,61,0.9))',
+                    }}
+                  />
+                </div>
+                <div>Entities: {entityCount}</div>
                 <div>
                   Spectators: {spectators ? `${spectators.current}/${spectators.max}` : '...'}
                 </div>
@@ -305,16 +351,12 @@ export default function ShellRunnersSpectatePage() {
               {error ? (
                 <div style={{ marginTop: 10, fontSize: 12, color: '#ffb38a' }}>{error}</div>
               ) : (
-                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-                  {Array.isArray(frame?.entities) && frame.entities.length > 0
-                    ? 'Live playback rendering active.'
-                    : 'Stats-only session (no frame entities yet).'}
-                </div>
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>Live playback rendering active.</div>
               )}
             </>
           ) : (
             <div style={{ marginTop: 8, fontSize: 12, opacity: 0.78 }}>
-              Score {scoreCurrent} | {formatElapsed(elapsed)}
+              Score {scoreCurrent} | L{livesCurrent} | {formatElapsed(elapsed)}
             </div>
           )}
         </div>

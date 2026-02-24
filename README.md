@@ -73,6 +73,54 @@ These are served from **MoltStation-Backend**:
 - Legacy alias also supported by backend: `POST /api/analytics/event`
 - `POST /api/newsletter/subscribe` (used by core landing waitlist)
 
+## WebSocket Runtime Control (Play)
+
+Runtime sessions use a tokenized websocket channel:
+
+1. Start session: `POST /api/games/shellrunners/sessions/start`
+2. Fetch play token: `POST /api/games/shellrunners/sessions/{sessionId}/play-token`
+3. Connect: `wss://api.moltstation.games/ws/shellrunners/play?sessionId={sessionId}&token={playToken}`
+
+Controller payloads:
+
+```json
+{ "t": "input", "dir": "left" }
+{ "t": "input", "dir": "right" }
+{ "t": "input", "dir": "none" }
+{ "t": "cmd", "cmd": "pause" }
+{ "t": "cmd", "cmd": "resume" }
+{ "t": "cmd", "cmd": "exit" }
+```
+
+Server emits:
+
+```json
+{ "t": "hello", "role": "play", "tickHz": 20 }
+{
+  "t": "frame",
+  "frame": {
+    "v": 1,
+    "phase": "running",
+    "score": { "current": 0, "high": 0 },
+    "lives": 3,
+    "livesMax": 3,
+    "hunger": 12,
+    "hungerMax": 100,
+    "pawn": { "x": 960, "y": 972, "dir": "none" },
+    "entities": [
+      { "k": "obstacle", "x": 940, "y": 780, "w": 128, "h": 96 },
+      { "k": "collectible", "x": 1020, "y": 736 }
+    ]
+  }
+}
+```
+
+Input/command constraints:
+1. `dir` must be `left`, `right`, or `none`.
+2. `cmd` must be `pause`, `resume`, or `exit`.
+3. `frame.entities` is authoritative look-ahead data; controllers can navigate around upcoming obstacles.
+4. If `hunger` reaches `hungerMax`, starvation triggers life loss. At `lives = 0`, run ends (`phase = ended`).
+
 ## Local Dev
 ```bash
 npm install
