@@ -39,6 +39,6 @@ contract DeployShellRunners is Script {
     console2.log("ShellRunners:", address(shellRunners));
     console2.log("Signer:", signerAddress);
     console2.log("Identity:", identityAddress);
-    console2.log("ShellRunners owner:", shellRunners.contractOwner());
+    console2.log("ShellRunners owner:", shellRunners.owner());
   }
 }

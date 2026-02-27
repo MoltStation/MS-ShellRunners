@@ -1534,16 +1534,13 @@ export class GlobalStore {
       const targetTokenId = hasShellRunner
         ? owned.map((n) => Number(n.tokenId)).sort((a, b) => a - b)[0]
         : null;
-      const action = hasShellRunner ? 'upgrade' : 'mint';
 
-      const resp = await this.fetchRewardsApi('/api/shellrunners/signtransaction', {
+      const resp = await this.fetchRewardsApi('/api/games/shellrunners/nft/prepare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           score,
           walletAddress: this.accountAddress,
-          action,
-          tokenId: targetTokenId,
         }),
       });
 
@@ -1558,36 +1555,50 @@ export class GlobalStore {
       }
 
       const payload = (await resp.json()) as {
+        ok?: boolean;
         action?: 'mint' | 'upgrade';
-        tokenURI?: string;
-        metadataCid?: string;
-        signature?: { v: number; r: `0x${string}`; s: `0x${string}` } | string;
+        tokenId?: number | string | null;
+        payload?: {
+          tokenURI?: string;
+          metadataCid?: string;
+          signature?: { v: number; r: `0x${string}`; s: `0x${string}` } | string;
+        };
         error?: string;
       };
-      if (!payload.signature) {
+      if (!payload.payload?.signature) {
         throw new Error(payload.error ?? 'Missing signature');
       }
 
       // Important: tokenURI must match exactly what the backend signed.
-      const tokenURI = payload.tokenURI ?? (payload.metadataCid ? `ipfs://${payload.metadataCid}` : '');
+      const tokenURI =
+        payload.payload.tokenURI ??
+        (payload.payload.metadataCid ? `ipfs://${payload.payload.metadataCid}` : '');
       if (!tokenURI) {
         throw new Error('Missing tokenURI');
       }
 
       const parsedSig =
-        typeof payload.signature === 'string'
-          ? (JSON.parse(payload.signature) as { v: number; r: `0x${string}`; s: `0x${string}` })
-          : (payload.signature as { v: number; r: `0x${string}`; s: `0x${string}` });
+        typeof payload.payload.signature === 'string'
+          ? (JSON.parse(payload.payload.signature) as {
+              v: number;
+              r: `0x${string}`;
+              s: `0x${string}`;
+            })
+          : (payload.payload.signature as { v: number; r: `0x${string}`; s: `0x${string}` });
       const { v, r, s } = parsedSig;
 
-      const mode = payload.action === 'upgrade' ? 'upgrade' : action;
+      const mode = payload.action === 'upgrade' ? 'upgrade' : 'mint';
+      const preparedTokenId = Number(payload.tokenId ?? targetTokenId ?? 0);
+      if (mode === 'upgrade' && (!Number.isFinite(preparedTokenId) || preparedTokenId <= 0)) {
+        throw new Error('Missing tokenId for upgrade');
+      }
       const hash =
-        mode === 'upgrade' && targetTokenId !== null
+        mode === 'upgrade'
           ? await write({
               address: shellRunners,
               abi: shellRunnersAbi,
               functionName: 'upgradeShellRunner',
-              args: [BigInt(score), tokenURI, BigInt(targetTokenId), v, r, s],
+              args: [BigInt(score), tokenURI, BigInt(preparedTokenId), v, r, s],
               account: this.accountAddress as Address,
             })
           : await write({
@@ -1603,7 +1614,9 @@ export class GlobalStore {
       await this.fetchUserNftsList(true);
       const latestOwned = (this.userNftList ?? []).filter((n) => Number(n.tokenId) >= 0);
       let resolvedTokenId: number | null =
-        mode === 'upgrade' && targetTokenId !== null ? targetTokenId : null;
+        mode === 'upgrade' && Number.isFinite(preparedTokenId) && preparedTokenId > 0
+          ? preparedTokenId
+          : null;
       if (resolvedTokenId === null && latestOwned.length > 0) {
         resolvedTokenId = latestOwned
           .map((n) => Number(n.tokenId))
@@ -1621,7 +1634,7 @@ export class GlobalStore {
             tokenId: resolvedTokenId,
             score,
             tokenURI: matched?.tokenUri ?? tokenURI,
-            metadataCid: payload.metadataCid ?? null,
+            metadataCid: payload.payload?.metadataCid ?? null,
             txHash: String(hash),
           }),
         }).catch(() => {});
