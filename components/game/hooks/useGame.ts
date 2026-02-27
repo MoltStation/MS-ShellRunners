@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GameResizer } from '../src/utils/GameResizer';
 import { BootScene } from '../src/scenes/BootScene';
 import { GameScene } from '../src/scenes/GameScene';
-import { GPU } from '../../../lib/gpu-browser';
 
 const DEBUG_RUNTIME = process.env.NEXT_PUBLIC_SHELLRUNNERS_DEBUG === 'true';
 
@@ -24,98 +23,47 @@ const config: Phaser.Types.Core.GameConfig = {
   },
 };
 
-const runPerformanceTest = () => {
-  const gpu = new GPU();
+const classifyDevicePerformance = () => {
+  const mem = Number((navigator as any).deviceMemory || 0);
+  const cores = Number(navigator.hardwareConcurrency || 0);
+  let score = 0;
 
-  const multiplyMatrix = gpu
-    .createKernel(function (a: any, b: any) {
-      let sum = 0;
-      for (let i = 0; i < 512; i++) {
-        // @ts-ignore
-        sum += a[this.thread.y][i] * b[i][this.thread.x];
-      }
-      return sum;
-    })
-    .setOutput([512, 512]);
-
-  const k = getRandomMatrix(512);
-  const testStart = performance.now();
-  let performanceMeasure = [];
-  let minPerformance = 1000000000000;
-  let sum2 = 0;
-  for (let i = 0; i < 5; i++) {
-    const start = performance.now();
-    multiplyMatrix(k, k);
-    const end = performance.now();
-    if (end - testStart > 1500) {
-      return 1500;
-    }
-    const currentPerformance = end - start;
-    sum2 += currentPerformance;
-    performanceMeasure.push(end - start);
-    if (minPerformance > currentPerformance) {
-      minPerformance = currentPerformance;
-    }
-    if (minPerformance <= 80) {
-      if (DEBUG_RUNTIME) {
-        console.log('PERFORMANCE: ' + minPerformance);
-      }
-      return minPerformance;
-    }
+  if (Number.isFinite(mem) && mem > 0) {
+    if (mem >= 8) score += 2;
+    else if (mem >= 4) score += 1;
   }
+
+  if (Number.isFinite(cores) && cores > 0) {
+    if (cores >= 8) score += 2;
+    else if (cores >= 4) score += 1;
+  }
+
   if (DEBUG_RUNTIME) {
-    console.log('RUN', minPerformance);
+    console.log('Device performance score:', score, 'cores:', cores, 'mem:', mem);
   }
-  performanceMeasure = performanceMeasure.map((val) => {
-    return val;
-  });
-  const min = Math.min(...performanceMeasure);
-  const result =
-    '----------------------------\nBEST: ' +
-    min +
-    '\nALL: ' +
-    performanceMeasure +
-    '\nWORST: ' +
-    Math.max(...performanceMeasure) +
-    '\nSUM: ' +
-    sum2 +
-    '\n----------------------';
-  if (DEBUG_RUNTIME) {
-    console.warn('RESULT: ' + result);
-  }
-  return min;
-};
 
-const getRandomMatrix = (size: number) => {
-  const result = [];
-  for (let i = 0; i < size; i++) {
-    const row = [];
-    for (let j = 0; j < size; j++) {
-      row.push(Math.floor(Math.random() * 100) + 1);
-    }
-    result.push(row);
-  }
-  return result;
+  return score;
 };
 
 const getRendererAndDPR = () => {
-  const performance = runPerformanceTest();
+  const performanceScore = classifyDevicePerformance();
   let dpr = window.devicePixelRatio;
   let rendererType = Phaser.AUTO;
-  if (performance <= 80) {
+  if (performanceScore >= 3) {
     if (DEBUG_RUNTIME) {
       console.log('High Performance! 0% quality reduction');
     }
-  } else if (performance <= 160) {
+  } else if (performanceScore >= 1) {
     if (DEBUG_RUNTIME) {
-      console.log('Moderate Performance! 20% quality reduction');
+      console.log('Moderate Performance! 10% quality reduction');
     }
-    dpr *= 0.8;
+    dpr *= 0.9;
   } else {
     if (DEBUG_RUNTIME) {
       console.log('Low Performance! Switched to Canvas Mode');
     }
     rendererType = Phaser.CANVAS;
+    dpr *= 0.75;
   }
 
   if (
