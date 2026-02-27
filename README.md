@@ -73,6 +73,12 @@ These are served from **MoltStation-Backend**:
 - Legacy alias also supported by backend: `POST /api/analytics/event`
 - `POST /api/newsletter/subscribe` (used by core landing waitlist)
 
+ShellRunners signing note:
+1. Local legacy signing stack is deprecated/removed.
+2. Canonical NFT signing flow is through backend prepare endpoint:
+   - `POST /api/games/shellrunners/nft/prepare`
+   - followed by on-chain mint/upgrade transaction from wallet.
+
 ## WebSocket Runtime Control (Play)
 
 Runtime sessions use a tokenized websocket channel:
@@ -138,6 +144,8 @@ Quality checks:
 npm run lint
 npm run typecheck
 npm run build
+npm run security:audit:prod
+npm run ci:security
 ```
 
 ## Contracts
@@ -147,6 +155,7 @@ npm run build
 ## Security Notes
 - Do not commit private keys or secrets.
 - Verify chain ID and contract addresses before signing.
+- Do not re-introduce local signing endpoints; keep signing authority centralized in `MoltStation-Backend`.
 
 ## Related Repo
 - Core contracts + backend: `MoltStation-Backend`

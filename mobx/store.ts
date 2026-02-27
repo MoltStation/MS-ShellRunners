@@ -1561,6 +1561,8 @@ export class GlobalStore {
         payload?: {
           tokenURI?: string;
           metadataCid?: string;
+          nonce?: string | number | bigint;
+          deadline?: string | number | bigint;
           signature?: { v: number; r: `0x${string}`; s: `0x${string}` } | string;
         };
         error?: string;
@@ -1586,6 +1588,16 @@ export class GlobalStore {
             })
           : (payload.payload.signature as { v: number; r: `0x${string}`; s: `0x${string}` });
       const { v, r, s } = parsedSig;
+      if (
+        payload.payload?.nonce === undefined ||
+        payload.payload?.nonce === null ||
+        payload.payload?.deadline === undefined ||
+        payload.payload?.deadline === null
+      ) {
+        throw new Error('Missing nonce/deadline in signature payload');
+      }
+      const parsedNonce = BigInt(String(payload.payload?.nonce ?? ''));
+      const parsedDeadline = BigInt(String(payload.payload?.deadline ?? ''));
 
       const mode = payload.action === 'upgrade' ? 'upgrade' : 'mint';
       const preparedTokenId = Number(payload.tokenId ?? targetTokenId ?? 0);
@@ -1598,14 +1610,23 @@ export class GlobalStore {
               address: shellRunners,
               abi: shellRunnersAbi,
               functionName: 'upgradeShellRunner',
-              args: [BigInt(score), tokenURI, BigInt(preparedTokenId), v, r, s],
+              args: [
+                BigInt(score),
+                tokenURI,
+                BigInt(preparedTokenId),
+                parsedNonce,
+                parsedDeadline,
+                v,
+                r,
+                s,
+              ],
               account: this.accountAddress as Address,
             })
           : await write({
               address: shellRunners,
               abi: shellRunnersAbi,
               functionName: 'generateShellRunner',
-              args: [BigInt(score), tokenURI, v, r, s],
+              args: [BigInt(score), tokenURI, parsedNonce, parsedDeadline, v, r, s],
               account: this.accountAddress as Address,
             });
       // @ts-ignore

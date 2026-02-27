@@ -56,6 +56,8 @@ export const shellRunnersAbi = [
     inputs: [
       { name: '_score', type: 'uint256' },
       { name: '_tokenURI', type: 'string' },
+      { name: '_nonce', type: 'uint256' },
+      { name: '_deadline', type: 'uint256' },
       { name: 'v', type: 'uint8' },
       { name: 'r', type: 'bytes32' },
       { name: 's', type: 'bytes32' },
@@ -70,6 +72,8 @@ export const shellRunnersAbi = [
       { name: '_score', type: 'uint256' },
       { name: '_tokenURI', type: 'string' },
       { name: '_tokenId', type: 'uint256' },
+      { name: '_nonce', type: 'uint256' },
+      { name: '_deadline', type: 'uint256' },
       { name: 'v', type: 'uint8' },
       { name: 'r', type: 'bytes32' },
       { name: 's', type: 'bytes32' },

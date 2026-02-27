@@ -10,6 +10,9 @@
     "typecheck": "tsc --noEmit",
     "ci:check": "npm run lint && npm run typecheck",
     "ci:build": "npm run build",
+    "security:audit:prod": "npm audit --omit=dev --audit-level=high",
+    "security:audit:all": "npm audit --audit-level=high",
+    "ci:security": "npm run security:audit:prod",
     "seed:db": "node scripts/seed-db.mjs",
     "update:addresses": "node scripts/update-addresses-from-broadcast.mjs"
   },

@@ -9,9 +9,22 @@ import "../src/ShellRunners.sol";
 /// @dev Uses env vars from `play-to-earn-NFT-game-EVM/.env`:
 ///      - `NEXT_SHELLRUNNERS_PRIVATE_KEY` (deployer key for the game contract)
 ///      - `MOLTBOT_IDENTITY_ADDRESS` or `NEXT_PUBLIC_MOLTBOT_IDENTITY_ADDRESS`
+///      - `SHELLRUNNERS_OWNER_ADDRESS` (optional, defaults to `MOLTBOT_SAFE_MULTISIG_ADDRESS` or deployer)
 /// @author MoltStation contributors
 /// @custom:website https://moltstation.games
 contract DeployShellRunners is Script {
+  function _envAddressOr(string memory name, address fallbackValue)
+    internal
+    returns (address)
+  {
+    try vm.envAddress(name) returns (address value) {
+      if (value == address(0)) return fallbackValue;
+      return value;
+    } catch {
+      return fallbackValue;
+    }
+  }
+
   function _envKey(string memory name) internal returns (uint256) {
     string memory raw = vm.envString(name);
     if (bytes(raw).length == 64) {
@@ -23,8 +36,15 @@ contract DeployShellRunners is Script {
   function run() external {
     uint256 shellRunnersDeployerKey = _envKey("NEXT_SHELLRUNNERS_PRIVATE_KEY");
 
-    // Use the ShellRunners deployer as the signer by default.
-    address signerAddress = vm.addr(shellRunnersDeployerKey);
+    // Use explicit signer address when configured; fallback to deployer address.
+    address signerAddress = _envAddressOr(
+      "SHELLRUNNERS_SIGNER_ADDRESS",
+      vm.addr(shellRunnersDeployerKey)
+    );
+    address ownerAddress = _envAddressOr(
+      "SHELLRUNNERS_OWNER_ADDRESS",
+      _envAddressOr("MOLTBOT_SAFE_MULTISIG_ADDRESS", vm.addr(shellRunnersDeployerKey))
+    );
     address identityAddress = vm.envAddress("MOLTBOT_IDENTITY_ADDRESS");
     if (identityAddress == address(0)) {
       identityAddress = vm.envAddress("NEXT_PUBLIC_MOLTBOT_IDENTITY_ADDRESS");
@@ -33,12 +53,16 @@ contract DeployShellRunners is Script {
 
     vm.startBroadcast(shellRunnersDeployerKey);
     ShellRunners shellRunners = new ShellRunners(identityAddress, signerAddress);
+    if (ownerAddress != address(0) && ownerAddress != vm.addr(shellRunnersDeployerKey)) {
+      shellRunners.transferOwnership(ownerAddress);
+    }
     vm.stopBroadcast();
 
     console2.log("Deployer:", vm.addr(shellRunnersDeployerKey));
     console2.log("ShellRunners:", address(shellRunners));
     console2.log("Signer:", signerAddress);
     console2.log("Identity:", identityAddress);
+    console2.log("Configured owner:", ownerAddress);
     console2.log("ShellRunners owner:", shellRunners.owner());
   }
 }
