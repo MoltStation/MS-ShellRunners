@@ -1545,13 +1545,14 @@ export class GlobalStore {
       });
 
       if (!resp.ok) {
-        const text = await resp.text();
-        try {
-          const payload = JSON.parse(text) as { error?: string };
-          throw new Error(payload.error ?? 'Mint metadata API failed');
-        } catch {
-          throw new Error('Mint metadata API failed');
-        }
+        const payload = (await resp.json().catch(() => null)) as
+          | { error?: string; code?: string; details?: string }
+          | null;
+        const message =
+          String(payload?.error || '').trim() ||
+          String(payload?.code || '').trim() ||
+          `Mint metadata API failed (${resp.status})`;
+        throw new Error(message);
       }
 
       const payload = (await resp.json()) as {

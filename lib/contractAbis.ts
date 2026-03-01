@@ -301,4 +301,14 @@ export const identityAbi = [
     ],
     outputs: [{ type: 'uint256' }],
   },
+  {
+    type: 'function',
+    name: 'updateTokenURI',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'tokenURI', type: 'string' },
+    ],
+    outputs: [],
+  },
 ] as const;
