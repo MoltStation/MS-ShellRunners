@@ -9,22 +9,10 @@ import "../src/ShellRunners.sol";
 /// @dev Uses env vars from `play-to-earn-NFT-game-EVM/.env`:
 ///      - `NEXT_SHELLRUNNERS_PRIVATE_KEY` (deployer key for the game contract)
 ///      - `MOLTBOT_IDENTITY_ADDRESS` or `NEXT_PUBLIC_MOLTBOT_IDENTITY_ADDRESS`
-///      - `SHELLRUNNERS_OWNER_ADDRESS` (optional, defaults to `MOLTBOT_SAFE_MULTISIG_ADDRESS` or deployer)
+///      - `SHELLRUNNERS_OWNER_ADDRESS` (required, SAFE_GOV for production)
 /// @author MoltStation contributors
 /// @custom:website https://moltstation.games
 contract DeployShellRunners is Script {
-  function _envAddressOr(string memory name, address fallbackValue)
-    internal
-    returns (address)
-  {
-    try vm.envAddress(name) returns (address value) {
-      if (value == address(0)) return fallbackValue;
-      return value;
-    } catch {
-      return fallbackValue;
-    }
-  }
-
   function _envKey(string memory name) internal returns (uint256) {
     string memory raw = vm.envString(name);
     if (bytes(raw).length == 64) {
@@ -36,15 +24,11 @@ contract DeployShellRunners is Script {
   function run() external {
     uint256 shellRunnersDeployerKey = _envKey("NEXT_SHELLRUNNERS_PRIVATE_KEY");
 
-    // Use explicit signer address when configured; fallback to deployer address.
-    address signerAddress = _envAddressOr(
-      "SHELLRUNNERS_SIGNER_ADDRESS",
-      vm.addr(shellRunnersDeployerKey)
-    );
-    address ownerAddress = _envAddressOr(
-      "SHELLRUNNERS_OWNER_ADDRESS",
-      _envAddressOr("MOLTBOT_SAFE_MULTISIG_ADDRESS", vm.addr(shellRunnersDeployerKey))
-    );
+    // Require explicit signer/owner for production-safe deployment.
+    address signerAddress = vm.envAddress("SHELLRUNNERS_SIGNER_ADDRESS");
+    address ownerAddress = vm.envAddress("SHELLRUNNERS_OWNER_ADDRESS");
+    require(signerAddress != address(0), "SHELLRUNNERS_SIGNER_ADDRESS required");
+    require(ownerAddress != address(0), "SHELLRUNNERS_OWNER_ADDRESS required");
     address identityAddress = vm.envAddress("MOLTBOT_IDENTITY_ADDRESS");
     if (identityAddress == address(0)) {
       identityAddress = vm.envAddress("NEXT_PUBLIC_MOLTBOT_IDENTITY_ADDRESS");

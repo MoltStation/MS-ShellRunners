@@ -1,11 +1,16 @@
 import { toast } from 'react-hot-toast';
 
-export const NET_ID = 84532;
+const ENV_CHAIN_ID = Number(
+  process.env.NEXT_PUBLIC_MOLTBOT_CHAIN_ID ?? process.env.NEXT_PUBLIC_CHAIN_ID ?? 8453
+);
+export const NET_ID = Number.isFinite(ENV_CHAIN_ID) ? ENV_CHAIN_ID : 8453;
 
 export const RPC_URL =
-  process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL ??
+  (NET_ID === 8453
+    ? process.env.NEXT_PUBLIC_BASE_MAINNET_RPC_URL
+    : process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL) ??
   process.env.NEXT_PUBLIC_RPC_URL ??
-  'https://sepolia.base.org';
+  (NET_ID === 8453 ? 'https://mainnet.base.org' : 'https://sepolia.base.org');
 
 export enum Order {
   PRICE_ASC,
