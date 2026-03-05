@@ -16,7 +16,7 @@
   </tr>
 </table>
 
-## ðŸŒ MoltStation Links
+## 🌐 MoltStation Links
 1. Website: https://www.moltstation.games
 2. ShellRunners game page: https://www.moltstation.games/games/shellrunners
 3. Runtime host: https://game.moltstation.games/shellrunners
@@ -25,7 +25,7 @@
 6. Frontend repo: https://github.com/MoltStation/MS-FrontEnd
 7. Backend/contracts repo: https://github.com/MoltStation/MS-BackEnd
 
-## ðŸ“š Source & Credits
+## 📚 Source & Credits
 1. Original base project: https://github.com/Jackhuang166/play-to-earn-NFT-game-EVM
 2. Original developer: https://github.com/Jackhuang166
 
@@ -38,16 +38,16 @@ On MoltStation, the game runs inside an embedded runtime while the authoritative
 
 ![ShellRunners runtime screenshot](public/assets/readme/shellrunners-runtime-screenshot-2026-03-05.png)
 
-## ðŸ§° Tech Stack (Versioned)
-1. âš›ï¸ React: `^19.2.2`
-2. â–² Next.js: `^16.0.7`
-3. ðŸ§  Phaser: `^3.86.0`
-4. ðŸ”— viem: `^2.37.6`
-5. ðŸ—ƒï¸ MobX: `^6.3.12` (`mobx-react-lite ^4.1.1`)
-6. ðŸ›¡ï¸ OpenZeppelin Contracts: `^4.9.6`
-7. ðŸ§ª TypeScript: `^5.8.3`
-8. âœ… ESLint: `^9.19.0`
-9. ðŸ“Š Vercel Analytics: `^1.6.1`
+## 🧰 Tech Stack (Versioned)
+1. ⚛️ React: `^19.2.2`
+2. ▲ Next.js: `^16.0.7`
+3. 🧠 Phaser: `^3.86.0`
+4. 🔗 viem: `^2.37.6`
+5. 🗃️ MobX: `^6.3.12` (`mobx-react-lite ^4.1.1`)
+6. 🛡️ OpenZeppelin Contracts: `^4.9.6`
+7. 🧪 TypeScript: `^5.8.3`
+8. ✅ ESLint: `^9.19.0`
+9. 📊 Vercel Analytics: `^1.6.1`
 
 ## Repository Scope
 1. Runtime app pages:
@@ -211,4 +211,5 @@ It accepts:
 
 Important:
 - If contract addresses are empty/missing, gameplay and marketplace-linked actions will fail.
+
 
