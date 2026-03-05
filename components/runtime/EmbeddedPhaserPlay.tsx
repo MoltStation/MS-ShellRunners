@@ -10,17 +10,16 @@ const SIDE_BANK_W = 148;
 const BANK_VERTICAL_STRETCH = 80;
 
 function resolveAllowedParentOrigins() {
-  const defaults = [
-    'https://moltstation.games',
-    'https://www.moltstation.games',
-    'http://127.0.0.1:3000',
-    'http://localhost:3000',
-  ];
-  const extra = String(process.env.NEXT_PUBLIC_CORE_ALLOWED_ORIGINS || '')
+  const configured = String(
+    process.env.NEXT_PUBLIC_ALLOWED_PARENT_ORIGINS ||
+      process.env.NEXT_PUBLIC_CORE_ALLOWED_ORIGINS ||
+      ''
+  )
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean);
-  return new Set([...defaults, ...extra]);
+  const localDefaults = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+  return new Set([...configured, ...localDefaults]);
 }
 
 const ALLOWED_PARENT_ORIGINS = resolveAllowedParentOrigins();
@@ -50,10 +49,12 @@ function resolveWsBaseFromApi(apiBase: string) {
 function resolveApiBase() {
   const explicit = String(process.env.NEXT_PUBLIC_MOLTBOT_API_URL || '').trim();
   if (explicit) return explicit.replace(/\/+$/, '');
-  if (typeof window === 'undefined') return 'https://api.moltstation.games';
+  if (typeof window === 'undefined') return '';
   const host = String(window.location.hostname || '').toLowerCase();
+  const protocol = String(window.location.protocol || 'https:');
   if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:4100';
-  return 'https://api.moltstation.games';
+  if (host.startsWith('game.')) return `${protocol}//api.${host.slice(5)}`;
+  return '';
 }
 
 function formatElapsed(ms: number) {
@@ -69,7 +70,7 @@ function clamp01(value: number) {
 
 function resolveCoreOriginFromQuery(fallback: string) {
   if (typeof window === 'undefined') return fallback;
-  const fallbackUrl = String(fallback || '').trim() || 'https://moltstation.games';
+  const fallbackUrl = String(fallback || '').trim() || window.location.origin;
   try {
     const params = new URLSearchParams(window.location.search);
     const coreOrigin = String(params.get('coreOrigin') || '').trim();
@@ -142,7 +143,8 @@ export default function EmbeddedPhaserPlay() {
   const coreOrigin = useMemo(
     () =>
       resolveCoreOriginFromQuery(
-        (process.env.NEXT_PUBLIC_CORE_LANDING_URL as string) || 'https://moltstation.games'
+        (process.env.NEXT_PUBLIC_CORE_LANDING_URL as string) ||
+          (typeof window !== 'undefined' ? window.location.origin : '')
       ),
     []
   );

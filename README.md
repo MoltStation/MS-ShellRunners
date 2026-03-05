@@ -1,52 +1,49 @@
-# ShellRunners (Game Runtime Module)
+# ShellRunners Runtime + Contract
 
-ShellRunners is the first game in the MoltStation ecosystem. This repo contains the game runtime/client and ShellRunners game contract. It integrates with **MoltStation-Backend** for Identity, PoPT, rewards, and game session telemetry.
+ShellRunners is the first game runtime integrated into MoltStation.  
+This repository contains:
+1. The runtime app (`/shellrunners`, `/shellrunners/spectate`) used by the core platform.
+2. The ShellRunners Solidity contract (`src/ShellRunners.sol`) and Foundry deploy script.
 
 ## Credits
-- Original repo: https://github.com/Jackhuang166/play-to-earn-NFT-game-EVM
+- Original base project: https://github.com/Jackhuang166/play-to-earn-NFT-game-EVM
 - Original developer: https://github.com/Jackhuang166
 
-This fork is the basis for our game. We have refactored, expanded, and integrated it into the MoltStation platform with additional contracts, backend flows, and UX updates.
+## Status
+- Updated: 2026-03-05
+- Scope: runtime + game contract only (no local signing backend, no local Mongo flow).
 
-## Documentation Status
-1. Last updated: 2026-02-15
-2. This file reflects the current runtime-only scope after migration.
+## Requirements
+1. Node.js 18+
+2. npm 10+
 
-## How It Fits Into MoltStation
-- Core website routes (`/`, `/market`, `/profile`, `/games/shellrunners`) are hosted in `MoltStation-Frontend`.
-- This repo is the runtime module that is embedded into frontend game pages.
-- Browser entry is frontend page `/games/shellrunners`; this repo provides the runtime target (canonical path `/shellrunners`).
-- **Identity NFT required to play** (Identity is minted through the core API).
-- **Scorebank + Rewards** handled by the core backend and contracts.
-- **PoPT** mints on first payout and updates only on payout.
-- **Marketplace** is managed by the core platform at `/market`.
+## Local development
+```bash
+npm install
+npm run dev
+```
 
-## Key Features
-- Phaser-based game loop with score snapshots.
-- Wallet connect + Base Sepolia support.
-- Identity registration flow (mint via core API + wallet signature).
+Runtime URL:
+- `http://127.0.0.1:3002/shellrunners`
 
-## Basic Functionality (Current)
-- Users connect a wallet, register an Identity NFT, and play Shell Runners.
-- The game streams score snapshots to the core backend (scorebank).
-- Payouts mint MoltStation rewards on a 24h cadence with EIP-712 signatures.
-- PoPT (Proof of Play) mints on first payout and updates on payout only.
-- Marketplace activity is handled in the core platform at `/market`.
-- Client-side gameplay/account events are posted to backend analytics for Mongo tracking.
-- Embedded-runtime UX:
-  - wallet-connect overlay appears before gameplay in iframe mode
-  - result action is `Exit Game` when embedded, and closes parent iframe via `postMessage`
-  - pause/resume is stable in runtime UI (no hard freeze on pause button)
-  - audio playback is deferred until first user gesture when browser audio context is locked
+## Quality checks
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
 
-## Configuration
-This repo reads addresses from a **single JSON config** first, with `.env` as a fallback.
+## Configuration model
+The runtime resolves contract addresses in this order:
+1. `public/config/addresses.json`
+2. `NEXT_PUBLIC_*` environment variables
 
-### Preferred (public config)
+### Public addresses file
 Edit `public/config/addresses.json`:
 ```json
 {
   "shellRunners": "0x...",
+  "market": "0x...",
   "identity": "0x...",
   "rewards": "0x...",
   "popt": "0x...",
@@ -55,107 +52,50 @@ Edit `public/config/addresses.json`:
 }
 ```
 
-### Fallback (env)
-In `.env` you can provide:
-- `NEXT_PUBLIC_SHELLRUNNERS_ADDRESS`
-- `NEXT_PUBLIC_MOLTBOT_IDENTITY_ADDRESS`
-- `NEXT_PUBLIC_MOLTBOT_REWARDS_ADDRESS`
-- `NEXT_PUBLIC_MOLTBOT_POPT_ADDRESS`
+### Required env vars
+At minimum:
+1. `NEXT_PUBLIC_MOLTBOT_API_URL`
+2. `NEXT_PUBLIC_CORE_LANDING_URL`
+3. `NEXT_PUBLIC_ALLOWED_PARENT_ORIGINS`
+4. `NEXT_PUBLIC_ALLOWED_FRAME_ANCESTORS`
+5. chain/RPC vars (`NEXT_PUBLIC_MOLTBOT_CHAIN_ID`, `NEXT_PUBLIC_BASE_*_RPC_URL`)
 
-## Core API Endpoints Used
-These are served from **MoltStation-Backend**:
-- `POST /api/identity/register`
-- `POST /api/rewards/start-session`
-- `POST /api/rewards/snapshot`
-- `POST /api/rewards/scorebank`
-- `POST /api/rewards/payout`
-- `POST /api/events/track` (login/logout/game-end + identity/PoPT checks)
-- Legacy alias also supported by backend: `POST /api/analytics/event`
-- `POST /api/newsletter/subscribe` (used by core landing waitlist)
+Use `.env.example` as baseline.
+Legacy compatibility: `NEXT_PUBLIC_CORE_ALLOWED_ORIGINS` is still accepted.
 
-ShellRunners signing note:
-1. Local legacy signing stack is deprecated/removed.
-2. Canonical NFT signing flow is through backend prepare endpoint:
-   - `POST /api/games/shellrunners/nft/prepare`
-   - followed by on-chain mint/upgrade transaction from wallet.
+## API integration
+This runtime expects MoltStation backend endpoints (configured via `NEXT_PUBLIC_MOLTBOT_API_URL`), including:
+1. Sessions/play-token + WS runtime endpoints
+2. Identity/rewards endpoints used by game flow
+3. Event tracking endpoints
 
-## WebSocket Runtime Control (Play)
+No local signing endpoint is used.
 
-Runtime sessions use a tokenized websocket channel:
+## WebSocket flow (play)
+1. Start gameplay session from core backend
+2. Fetch play token
+3. Connect runtime WS with token
 
-1. Start session: `POST /api/games/shellrunners/sessions/start`
-2. Fetch play token: `POST /api/games/shellrunners/sessions/{sessionId}/play-token`
-3. Connect: `wss://api.moltstation.games/ws/shellrunners/play?sessionId={sessionId}&token={playToken}`
+Example WS path:
+`/ws/{slug}/play?sessionId={sessionId}&token={playToken}`
 
-Controller payloads:
+## Embedding/security
+1. Parent origin allowlist is env-driven (`NEXT_PUBLIC_ALLOWED_PARENT_ORIGINS`).
+2. CSP `frame-ancestors` is env-driven (`NEXT_PUBLIC_ALLOWED_FRAME_ANCESTORS`).
+3. Keep these env vars aligned in every deployment environment.
 
-```json
-{ "t": "input", "dir": "left" }
-{ "t": "input", "dir": "right" }
-{ "t": "input", "dir": "none" }
-{ "t": "cmd", "cmd": "pause" }
-{ "t": "cmd", "cmd": "resume" }
-{ "t": "cmd", "cmd": "exit" }
-```
+## Address helper script
+`npm run update:addresses` writes `public/config/addresses.json` from env vars.
 
-Server emits:
-
-```json
-{ "t": "hello", "role": "play", "tickHz": 20 }
-{
-  "t": "frame",
-  "frame": {
-    "v": 1,
-    "phase": "running",
-    "score": { "current": 0, "high": 0 },
-    "lives": 3,
-    "livesMax": 3,
-    "hunger": 12,
-    "hungerMax": 100,
-    "pawn": { "x": 960, "y": 972, "dir": "none" },
-    "entities": [
-      { "k": "obstacle", "x": 940, "y": 780, "w": 128, "h": 96 },
-      { "k": "collectible", "x": 1020, "y": 736 }
-    ]
-  }
-}
-```
-
-Input/command constraints:
-1. `dir` must be `left`, `right`, or `none`.
-2. `cmd` must be `pause`, `resume`, or `exit`.
-3. `frame.entities` is authoritative look-ahead data; controllers can navigate around upcoming obstacles.
-4. If `hunger` reaches `hungerMax`, starvation triggers life loss. At `lives = 0`, run ends (`phase = ended`).
-
-## Local Dev
-```bash
-npm install
-npm run dev
-```
-
-Current runtime URL for embedding is typically:
-`http://127.0.0.1:3002/shellrunners`
-
-Production embed target:
-`https://game.moltstation.games/shellrunners`
-
-Quality checks:
-```bash
-npm run lint
-npm run typecheck
-npm run build
-npm run security:audit:prod
-npm run ci:security
-```
+It accepts either:
+1. `NEXT_PUBLIC_*` address vars, or
+2. fallback vars (`SHELLRUNNERS_ADDRESS`, `MARKET_ADDRESS`, etc.) from `.env.example`.
 
 ## Contracts
-- `src/ShellRunners.sol` (game contract)
-- `script/DeployShellRunners.s.sol`
+1. `src/ShellRunners.sol`
+2. `script/DeployShellRunners.s.sol`
 
-## Security Notes
-- Do not commit private keys or secrets.
-- Verify chain ID and contract addresses before signing.
-- Do not re-introduce local signing endpoints; keep signing authority centralized in `MoltStation-Backend`.
-
-## Related Repo
-- Core contracts + backend: `MoltStation-Backend`
+## Notes for public forks
+1. Replace all contract addresses and API URLs with your own.
+2. Set your own parent-origin/CSP allowlists.
+3. Do not commit secrets/private keys.

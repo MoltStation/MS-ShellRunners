@@ -1,4 +1,19 @@
 /** @type {import('next').NextConfig} */
+function resolveFrameAncestors() {
+  const fromEnv = String(
+    process.env.NEXT_PUBLIC_ALLOWED_FRAME_ANCESTORS ||
+      process.env.NEXT_PUBLIC_ALLOWED_PARENT_ORIGINS ||
+      process.env.NEXT_PUBLIC_CORE_ALLOWED_ORIGINS ||
+      ''
+  )
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  const localDefaults = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+  return [...new Set([...fromEnv, ...localDefaults])].join(' ');
+}
+
 module.exports = {
   reactStrictMode: true,
   // OneDrive can lock `.next/trace` causing EPERM during `next build` on Windows.
@@ -16,12 +31,7 @@ module.exports = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   async headers() {
-    const frameAncestors = [
-      "https://moltstation.games",
-      "https://www.moltstation.games",
-      "http://127.0.0.1:3000",
-      "http://localhost:3000",
-    ].join(" ");
+    const frameAncestors = resolveFrameAncestors();
 
     return [
       {

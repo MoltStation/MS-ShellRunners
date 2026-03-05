@@ -1,5 +1,3 @@
-const { url } = require('inspector');
-
 module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx}',
@@ -10,7 +8,6 @@ module.exports = {
       backgroundImage: {
         website_bg: 'url(../public/assets/website-bg.png)',
         pattern: 'url(../public/assets/shellrunner-pattern.png)',
-        avtar: 'url(../public/assets/website/avtar.webp)',
       },
       fontFamily: {
         primary: ['Space Grotesk', 'Josefin Sans', 'sans-serif'],

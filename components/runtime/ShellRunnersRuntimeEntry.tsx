@@ -22,7 +22,10 @@ export default function ShellRunnersRuntimeEntry() {
     return <EmbeddedPhaserPlay />;
   }
 
-  const coreBase = String(process.env.NEXT_PUBLIC_CORE_LANDING_URL || 'https://moltstation.games').trim();
+  const coreBase = String(
+    process.env.NEXT_PUBLIC_CORE_LANDING_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : '')
+  ).trim();
   const coreGameUrl = `${coreBase.replace(/\/+$/, '')}/games/shellrunners`;
 
   return (

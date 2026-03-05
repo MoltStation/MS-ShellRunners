@@ -158,14 +158,22 @@ export class GlobalStore {
   }
 
   private buildSignInMessage(address: string) {
+    const configuredOrigin = String(process.env.NEXT_PUBLIC_CORE_LANDING_URL || '').trim();
+    const fallbackOrigin = configuredOrigin || 'http://localhost:3000';
     const origin =
       typeof window !== 'undefined' && window.location?.origin
         ? window.location.origin
-        : 'https://moltstation.games';
+        : fallbackOrigin;
+    let fallbackDomain = 'localhost:3000';
+    try {
+      fallbackDomain = new URL(fallbackOrigin).host || fallbackDomain;
+    } catch {
+      // keep default localhost fallback
+    }
     const domain =
       typeof window !== 'undefined' && window.location?.host
         ? window.location.host
-        : 'moltstation.games';
+        : fallbackDomain;
     const nonce = this.createSessionId().slice(2, 10);
     const issuedAt = new Date().toISOString();
 

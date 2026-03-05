@@ -4,17 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import FrameCanvas from '../../components/runtime/FrameCanvas';
 
 function resolveAllowedParentOrigins() {
-  const defaults = [
-    'https://moltstation.games',
-    'https://www.moltstation.games',
-    'http://127.0.0.1:3000',
-    'http://localhost:3000',
-  ];
-  const extra = String(process.env.NEXT_PUBLIC_CORE_ALLOWED_ORIGINS || '')
+  const configured = String(
+    process.env.NEXT_PUBLIC_ALLOWED_PARENT_ORIGINS ||
+      process.env.NEXT_PUBLIC_CORE_ALLOWED_ORIGINS ||
+      ''
+  )
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean);
-  return new Set([...defaults, ...extra]);
+  const localDefaults = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+  return new Set([...configured, ...localDefaults]);
 }
 
 const ALLOWED_PARENT_ORIGINS = resolveAllowedParentOrigins();
@@ -36,10 +35,12 @@ function resolveWsBaseFromApi(apiBase: string) {
 function resolveApiBase() {
   const explicit = String(process.env.NEXT_PUBLIC_MOLTBOT_API_URL || '').trim();
   if (explicit) return explicit.replace(/\/+$/, '');
-  if (typeof window === 'undefined') return 'https://api.moltstation.games';
+  if (typeof window === 'undefined') return '';
   const host = String(window.location.hostname || '').toLowerCase();
+  const protocol = String(window.location.protocol || 'https:');
   if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:4100';
-  return 'https://api.moltstation.games';
+  if (host.startsWith('game.')) return `${protocol}//api.${host.slice(5)}`;
+  return '';
 }
 
 function formatElapsed(ms: number) {

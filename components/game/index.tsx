@@ -31,7 +31,7 @@ const RUNTIME_EVENT_SOURCE = 'moltstation-runtime';
 
 function resolveCoreBaseUrlFromWindow(fallback: string) {
   if (typeof window === 'undefined') return fallback;
-  const fallbackUrl = String(fallback || '').trim() || 'https://moltstation.games';
+  const fallbackUrl = String(fallback || '').trim() || window.location.origin;
   try {
     const params = new URLSearchParams(window.location.search);
     const coreOrigin = String(params.get('coreOrigin') || '').trim();
@@ -41,21 +41,6 @@ function resolveCoreBaseUrlFromWindow(fallback: string) {
     }
   } catch {
     // ignore invalid query params
-  }
-
-  try {
-    const parsedFallback = new URL(fallbackUrl);
-    const isLocalHost =
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1';
-    const fallbackIsProdDomain =
-      parsedFallback.hostname === 'moltstation.games' ||
-      parsedFallback.hostname === 'www.moltstation.games';
-    if (isLocalHost && fallbackIsProdDomain) {
-      return 'http://127.0.0.1:3000';
-    }
-  } catch {
-    // ignore parse failures, fallback below
   }
   return fallbackUrl;
 }
@@ -70,7 +55,8 @@ const GameScreen = () => {
     process.env.NEXT_PUBLIC_MOLTBOT_SNAPSHOT_INTERVAL_MS ?? 5000
   );
   const coreBaseUrl = resolveCoreBaseUrlFromWindow(
-    process.env.NEXT_PUBLIC_CORE_LANDING_URL || 'https://moltstation.games'
+    process.env.NEXT_PUBLIC_CORE_LANDING_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : '')
   );
   const isEmbedded = typeof window !== 'undefined' && window.self !== window.top;
   const startedRef = useRef(false);

@@ -13,7 +13,6 @@
     "security:audit:prod": "npm audit --omit=dev --audit-level=high",
     "security:audit:all": "npm audit --audit-level=high",
     "ci:security": "npm run security:audit:prod",
-    "seed:db": "node scripts/seed-db.mjs",
     "update:addresses": "node scripts/update-addresses-from-broadcast.mjs"
   },
   "dependencies": {
@@ -31,8 +30,6 @@
     "cors": "^2.8.5",
     "mobx": "^6.3.12",
     "mobx-react-lite": "^4.1.1",
-    "mongodb": "^6.20.0",
-    "mongoose": "^8.19.0",
     "next": "^16.0.7",
     "next-auth": "^4.24.11",
     "phaser": "^3.86.0",
@@ -49,7 +46,6 @@
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.1.9",
     "autoprefixer": "^10.4.21",
-    "dotenv": "^11.0.0",
     "eslint": "^9.19.0",
     "eslint-config-next": "^16.0.7",
     "postcss": "^8.5.6",

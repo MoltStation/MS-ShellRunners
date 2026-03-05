@@ -3,12 +3,20 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import FrameCanvas from './FrameCanvas';
 
-const ALLOWED_PARENT_ORIGINS = new Set([
-  'https://moltstation.games',
-  'https://www.moltstation.games',
-  'http://127.0.0.1:3000',
-  'http://localhost:3000',
-]);
+function resolveAllowedParentOrigins() {
+  const configured = String(
+    process.env.NEXT_PUBLIC_ALLOWED_PARENT_ORIGINS ||
+      process.env.NEXT_PUBLIC_CORE_ALLOWED_ORIGINS ||
+      ''
+  )
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const localDefaults = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+  return new Set([...configured, ...localDefaults]);
+}
+
+const ALLOWED_PARENT_ORIGINS = resolveAllowedParentOrigins();
 
 function resolveWsBaseFromApi(apiBase: string) {
   const raw = String(apiBase || '').trim();
@@ -16,6 +24,17 @@ function resolveWsBaseFromApi(apiBase: string) {
   if (raw.startsWith('https://')) return raw.replace(/^https:\/\//, 'wss://');
   if (raw.startsWith('http://')) return raw.replace(/^http:\/\//, 'ws://');
   return null;
+}
+
+function resolveApiBase() {
+  const explicit = String(process.env.NEXT_PUBLIC_MOLTBOT_API_URL || '').trim();
+  if (explicit) return explicit.replace(/\/+$/, '');
+  if (typeof window === 'undefined') return '';
+  const host = String(window.location.hostname || '').toLowerCase();
+  const protocol = String(window.location.protocol || 'https:');
+  if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:4100';
+  if (host.startsWith('game.')) return `${protocol}//api.${host.slice(5)}`;
+  return '';
 }
 
 function formatElapsed(ms: number) {
@@ -27,7 +46,7 @@ function formatElapsed(ms: number) {
 
 function resolveCoreOriginFromQuery(fallback: string) {
   if (typeof window === 'undefined') return fallback;
-  const fallbackUrl = String(fallback || '').trim() || 'https://moltstation.games';
+  const fallbackUrl = String(fallback || '').trim() || window.location.origin;
   try {
     const params = new URLSearchParams(window.location.search);
     const coreOrigin = String(params.get('coreOrigin') || '').trim();
@@ -65,13 +84,13 @@ export default function EmbeddedPlay() {
   const onExitRef = useRef<() => void>(() => {});
   const closingRef = useRef(false);
 
-  const apiBase =
-    (process.env.NEXT_PUBLIC_MOLTBOT_API_URL as string) || 'http://localhost:4100';
+  const apiBase = useMemo(() => resolveApiBase(), []);
   const wsBase = useMemo(() => resolveWsBaseFromApi(apiBase), [apiBase]);
   const coreOrigin = useMemo(
     () =>
       resolveCoreOriginFromQuery(
-        (process.env.NEXT_PUBLIC_CORE_LANDING_URL as string) || 'https://moltstation.games'
+        (process.env.NEXT_PUBLIC_CORE_LANDING_URL as string) ||
+          (typeof window !== 'undefined' ? window.location.origin : '')
       ),
     []
   );

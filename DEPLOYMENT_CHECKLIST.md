@@ -17,8 +17,13 @@
 
 ## 3) Required Env Vars
 1. `NEXT_PUBLIC_MOLTBOT_API_URL`
-2. `NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL`
-3. `NEXT_PUBLIC_CORE_LANDING_URL`
+2. `NEXT_PUBLIC_CORE_LANDING_URL`
+3. `NEXT_PUBLIC_ALLOWED_PARENT_ORIGINS`
+4. `NEXT_PUBLIC_ALLOWED_FRAME_ANCESTORS`
+5. `NEXT_PUBLIC_MOLTBOT_CHAIN_ID`
+6. One RPC source:
+   - `NEXT_PUBLIC_BASE_MAINNET_RPC_URL`, or
+   - `NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL`
 
 ## 4) Strongly Recommended Env Vars
 1. `NEXT_PUBLIC_MOLTBOT_MARKET_ADDRESS`
@@ -34,4 +39,4 @@
 4. Payout button and cooldown render correctly.
 5. Marketplace links route to core `/market`.
 6. Runtime page `/shellrunners` loads and is embeddable from `MoltStation-Frontend` (`/games/shellrunners`).
-7. Production runtime URL resolves at `https://game.moltstation.games/shellrunners`.
+7. Runtime URL resolves at your configured game host `/shellrunners`.
