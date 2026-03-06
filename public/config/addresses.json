@@ -1,9 +1,9 @@
 {
-    "shellRunners":  "0x8f4bcf31c916426dd53ba0cb051fc987976d0f8b",
-    "market":  "0x13e25d8de2612881162b314394db98396fec7139",
-    "identity":  "0xc0c926d3d680e32782a3adf782055cfd53ebc6a3",
-    "rewards":  "0x658659ad15e54814474389dfaa66e4e494db3cde",
-    "popt":  "0xad51c0bddc866ec40191c19f5bebcdefaa0ca58d",
-    "poptId":  "",
-    "identityId":  ""
+  "shellRunners": "0x48023d732b753b28f96c1fb27bf57024db3feee4",
+  "market": "0x4da29e639db5af4423fc3748b68b6f03139e1587",
+  "identity": "0x7c80b46554cef21afc12a1440fd374b523d90f52",
+  "rewards": "0xe408c701d7885e533355948423b102ee98253e56",
+  "popt": "0x382e1b62e0f9e4e92efec3635188390be6a91200",
+  "poptId": "",
+  "identityId": ""
 }
