@@ -86,11 +86,16 @@ export default function ShellRunnersSpectatePage() {
   const [error, setError] = useState<string | null>(null);
   const [frame, setFrame] = useState<any | null>(null);
   const [hudMinimized, setHudMinimized] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const wsKeyRef = useRef(0);
   const closingRef = useRef(false);
   const trustedParentOriginRef = useRef('');
   const readyNonceRef = useRef('');
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  const lastScoreRef = useRef(0);
+  const lastLivesRef = useRef(0);
+  const lastSfxAtRef = useRef(0);
 
   const apiBase = useMemo(() => resolveApiBase(), []);
   const wsBase = useMemo(() => resolveWsBaseFromApi(apiBase), [apiBase]);
@@ -100,6 +105,10 @@ export default function ShellRunnersSpectatePage() {
     setIsEmbedded(typeof window !== 'undefined' && window.top !== window.self);
     trustedParentOriginRef.current = resolveBootstrapParentOrigin();
     readyNonceRef.current = `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`;
+    const soundRaw = String(router.query?.sound ?? '').trim().toLowerCase();
+    if (soundRaw === '1' || soundRaw === 'true' || soundRaw === 'on') {
+      setSoundEnabled(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -135,6 +144,12 @@ export default function ShellRunnersSpectatePage() {
       }
       const data = evt.data;
       if (!data || typeof data !== 'object') return;
+      if ((data as any).t === 'spectate_sound') {
+        const msgSessionId = String((data as any).sessionId ?? '').trim();
+        if (msgSessionId && msgSessionId !== sessionId) return;
+        setSoundEnabled(Boolean((data as any).enabled));
+        return;
+      }
       const token = String((data as any).token ?? '').trim();
       const slug = String((data as any).slug ?? '').trim();
       const msgSessionId = String((data as any).sessionId ?? '').trim();
@@ -158,6 +173,83 @@ export default function ShellRunnersSpectatePage() {
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!frame) return;
+    const nextScore = Math.max(0, Number(frame?.score?.current ?? 0));
+    const nextLives = Math.max(0, Number((frame as any)?.lives ?? 0));
+    if (lastLivesRef.current <= 0) lastLivesRef.current = nextLives;
+    if (lastScoreRef.current <= 0) lastScoreRef.current = nextScore;
+    if (!soundEnabled) {
+      lastScoreRef.current = nextScore;
+      lastLivesRef.current = nextLives;
+      return;
+    }
+
+    const now = Date.now();
+    const playSfx = (src: string, volume: number) => {
+      if (now - lastSfxAtRef.current < 220) return;
+      lastSfxAtRef.current = now;
+      try {
+        const audio = new Audio(src);
+        audio.volume = clamp01(volume);
+        void audio.play().catch(() => {});
+      } catch {
+        // ignore
+      }
+    };
+
+    if (nextLives < lastLivesRef.current) {
+      playSfx('/assets/audio/collision.wav', 0.68);
+    } else {
+      const delta = nextScore - lastScoreRef.current;
+      if (delta >= 200) {
+        playSfx('/assets/audio/powerup.wav', 0.64);
+      } else if (delta >= 20) {
+        playSfx('/assets/audio/starFish.wav', 0.58);
+      }
+    }
+
+    lastScoreRef.current = nextScore;
+    lastLivesRef.current = nextLives;
+  }, [frame, soundEnabled]);
+
+  useEffect(() => {
+    if (!soundEnabled) {
+      try {
+        bgmRef.current?.pause();
+      } catch {
+        // ignore
+      }
+      return;
+    }
+    if (!bgmRef.current) {
+      try {
+        const audio = new Audio('/assets/audio/bgm.wav');
+        audio.loop = true;
+        audio.volume = 0.5;
+        bgmRef.current = audio;
+      } catch {
+        bgmRef.current = null;
+      }
+    }
+    try {
+      void bgmRef.current?.play().catch(() => {});
+    } catch {
+      // ignore
+    }
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        bgmRef.current?.pause();
+      } catch {
+        // ignore
+      }
+      bgmRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (!handshake) return;
@@ -332,6 +424,22 @@ export default function ShellRunnersSpectatePage() {
                 }}
                 title={hudMinimized ? 'Expand panel' : 'Minimize panel'}>
                 {hudMinimized ? 'Expand' : 'Minimize'}
+              </button>
+              <button
+                type='button'
+                onClick={() => setSoundEnabled((v) => !v)}
+                style={{
+                  border: '1px solid rgba(215,247,255,0.22)',
+                  borderRadius: 8,
+                  background: 'rgba(10,12,18,0.55)',
+                  color: '#d7f7ff',
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  lineHeight: 1.1,
+                }}
+                title={soundEnabled ? 'Turn sound off' : 'Turn sound on'}>
+                Sound: {soundEnabled ? 'On' : 'Off'}
               </button>
             </div>
           </div>
