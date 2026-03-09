@@ -10,7 +10,8 @@ function resolveFrameAncestors() {
     .map((entry) => entry.trim())
     .filter(Boolean);
 
-  const localDefaults = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+  const isProd = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
+  const localDefaults = isProd ? [] : ['http://127.0.0.1:3000', 'http://localhost:3000'];
   return [...new Set([...fromEnv, ...localDefaults])].join(' ');
 }
 

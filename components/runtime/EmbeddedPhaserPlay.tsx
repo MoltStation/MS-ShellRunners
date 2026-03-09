@@ -18,7 +18,8 @@ function resolveAllowedParentOrigins() {
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean);
-  const localDefaults = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+  const isProd = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
+  const localDefaults = isProd ? [] : ['http://127.0.0.1:3000', 'http://localhost:3000'];
   return new Set([...configured, ...localDefaults]);
 }
 
@@ -81,6 +82,23 @@ function resolveCoreOriginFromQuery(fallback: string) {
   return fallbackUrl;
 }
 
+function resolveBootstrapParentOrigin(coreOrigin: string) {
+  const fromCore = String(coreOrigin || '').trim();
+  if (fromCore && ALLOWED_PARENT_ORIGINS.has(fromCore)) return fromCore;
+  if (typeof document !== 'undefined') {
+    const referrer = String(document.referrer || '').trim();
+    if (referrer) {
+      try {
+        const refOrigin = new URL(referrer).origin;
+        if (ALLOWED_PARENT_ORIGINS.has(refOrigin)) return refOrigin;
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return '';
+}
+
 function resolvePowerUpKey(kind: string) {
   const k = String(kind || '').trim();
   if (k === 'MovementSpeedPowerUp') return 'pow_movement';
@@ -122,6 +140,8 @@ export default function EmbeddedPhaserPlay() {
   const lastDirRef = useRef<Dir>('none');
   const pressedRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
   const onExitRef = useRef<() => void>(() => {});
+  const trustedParentOriginRef = useRef('');
+  const readyNonceRef = useRef('');
 
   const phaserParentRef = useRef<HTMLDivElement | null>(null);
   const phaserRef = useRef<any>(null);
@@ -150,6 +170,11 @@ export default function EmbeddedPhaserPlay() {
   );
 
   useEffect(() => {
+    trustedParentOriginRef.current = resolveBootstrapParentOrigin(coreOrigin);
+    readyNonceRef.current = `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`;
+  }, [coreOrigin]);
+
+  useEffect(() => {
     setIsEmbedded(typeof window !== 'undefined' && window.top !== window.self);
   }, []);
 
@@ -158,11 +183,13 @@ export default function EmbeddedPhaserPlay() {
     if (typeof window === 'undefined') return;
     if (window.top === window.self) return;
 
-    const msg = { t: 'play_ready', sessionId };
+    const targetOrigin = trustedParentOriginRef.current;
+    if (!targetOrigin) return;
+    const msg = { t: 'play_ready', sessionId, nonce: readyNonceRef.current };
     try {
-      window.parent?.postMessage(msg, '*');
-      setTimeout(() => window.parent?.postMessage(msg, '*'), 250);
-      setTimeout(() => window.parent?.postMessage(msg, '*'), 750);
+      window.parent?.postMessage(msg, targetOrigin);
+      setTimeout(() => window.parent?.postMessage(msg, targetOrigin), 250);
+      setTimeout(() => window.parent?.postMessage(msg, targetOrigin), 750);
     } catch {
       // ignore
     }
@@ -173,14 +200,22 @@ export default function EmbeddedPhaserPlay() {
     setStatus('waiting');
 
     function onMessage(evt: MessageEvent) {
-      if (!ALLOWED_PARENT_ORIGINS.has(evt.origin)) return;
+      const trusted = trustedParentOriginRef.current;
+      if (trusted) {
+        if (evt.origin !== trusted) return;
+      } else {
+        if (!ALLOWED_PARENT_ORIGINS.has(evt.origin)) return;
+        trustedParentOriginRef.current = evt.origin;
+      }
       const data = evt.data;
       if (!data || typeof data !== 'object') return;
       const token = String((data as any).token ?? '').trim();
       const slug = String((data as any).slug ?? '').trim();
       const msgSessionId = String((data as any).sessionId ?? '').trim();
+      const msgNonce = String((data as any).nonce ?? '').trim();
       const mode = String((data as any).mode ?? '').trim();
       if (mode && mode !== 'play') return;
+      if (!msgNonce || msgNonce !== readyNonceRef.current) return;
       if (!token || !slug || !msgSessionId) return;
       if (msgSessionId !== sessionId) return;
       setHandshake((prev) => {
@@ -222,58 +257,36 @@ export default function EmbeddedPhaserPlay() {
 
   const postRuntimeExit = (reason: string) => {
     try {
-      if (typeof window === 'undefined' || !isEmbedded || !window.parent) return false;
+      const targetOrigin = trustedParentOriginRef.current || resolveBootstrapParentOrigin(coreOrigin);
+      if (typeof window === 'undefined' || !isEmbedded || !window.parent || !targetOrigin) return false;
       window.parent.postMessage(
         {
           source: 'moltstation-runtime',
           event: 'runtime_exit',
           payload: { reason, sessionId },
         },
-        coreOrigin
+        targetOrigin
       );
       return true;
     } catch {
-      try {
-        window.parent?.postMessage(
-          {
-            source: 'moltstation-runtime',
-            event: 'runtime_exit',
-            payload: { reason, sessionId },
-          },
-          '*'
-        );
-      } catch {
-        // ignore
-      }
       return false;
     }
   };
 
   const postPlayTokenNeeded = (reason: string) => {
     try {
-      if (typeof window === 'undefined' || !isEmbedded || !window.parent) return false;
+      const targetOrigin = trustedParentOriginRef.current || resolveBootstrapParentOrigin(coreOrigin);
+      if (typeof window === 'undefined' || !isEmbedded || !window.parent || !targetOrigin) return false;
       window.parent.postMessage(
         {
           source: 'moltstation-runtime',
           event: 'play_token_needed',
           payload: { reason, sessionId, slug: handshake?.slug || 'shellrunners' },
         },
-        coreOrigin
+        targetOrigin
       );
       return true;
     } catch {
-      try {
-        window.parent?.postMessage(
-          {
-            source: 'moltstation-runtime',
-            event: 'play_token_needed',
-            payload: { reason, sessionId, slug: handshake?.slug || 'shellrunners' },
-          },
-          '*'
-        );
-      } catch {
-        // ignore
-      }
       return false;
     }
   };
@@ -295,7 +308,13 @@ export default function EmbeddedPhaserPlay() {
   useEffect(() => {
     if (!isEmbedded) return;
     function onMessage(evt: MessageEvent) {
-      if (!ALLOWED_PARENT_ORIGINS.has(evt.origin)) return;
+      const trusted = trustedParentOriginRef.current;
+      if (trusted) {
+        if (evt.origin !== trusted) return;
+      } else {
+        if (!ALLOWED_PARENT_ORIGINS.has(evt.origin)) return;
+        trustedParentOriginRef.current = evt.origin;
+      }
       const data = evt.data;
       if (!data || typeof data !== 'object') return;
       if (String((data as any).t ?? '') !== 'core_cmd') return;

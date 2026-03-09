@@ -12,7 +12,8 @@ function resolveAllowedParentOrigins() {
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean);
-  const localDefaults = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+  const isProd = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
+  const localDefaults = isProd ? [] : ['http://127.0.0.1:3000', 'http://localhost:3000'];
   return new Set([...configured, ...localDefaults]);
 }
 
@@ -23,6 +24,18 @@ const TOKEN_RECOVERY_REASONS = new Set([
   'TOKEN_NOT_FOUND',
   'INVALID_TOKEN',
 ]);
+
+function resolveBootstrapParentOrigin() {
+  if (typeof document === 'undefined') return '';
+  const referrer = String(document.referrer || '').trim();
+  if (!referrer) return '';
+  try {
+    const origin = new URL(referrer).origin;
+    return ALLOWED_PARENT_ORIGINS.has(origin) ? origin : '';
+  } catch {
+    return '';
+  }
+}
 
 function resolveWsBaseFromApi(apiBase: string) {
   const raw = String(apiBase || '').trim();
@@ -76,6 +89,8 @@ export default function ShellRunnersSpectatePage() {
   const wsRef = useRef<WebSocket | null>(null);
   const wsKeyRef = useRef(0);
   const closingRef = useRef(false);
+  const trustedParentOriginRef = useRef('');
+  const readyNonceRef = useRef('');
 
   const apiBase = useMemo(() => resolveApiBase(), []);
   const wsBase = useMemo(() => resolveWsBaseFromApi(apiBase), [apiBase]);
@@ -83,6 +98,8 @@ export default function ShellRunnersSpectatePage() {
   useEffect(() => {
     // Client-only: detect iframe usage.
     setIsEmbedded(typeof window !== 'undefined' && window.top !== window.self);
+    trustedParentOriginRef.current = resolveBootstrapParentOrigin();
+    readyNonceRef.current = `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`;
   }, []);
 
   useEffect(() => {
@@ -92,11 +109,13 @@ export default function ShellRunnersSpectatePage() {
 
     // Tell the parent we're ready to receive the token. This avoids timing issues
     // where the parent posts the token before our listener is attached.
-    const msg = { t: 'spectate_ready', sessionId };
+    const targetOrigin = trustedParentOriginRef.current;
+    if (!targetOrigin) return;
+    const msg = { t: 'spectate_ready', sessionId, nonce: readyNonceRef.current };
     try {
-      window.parent?.postMessage(msg, '*');
-      setTimeout(() => window.parent?.postMessage(msg, '*'), 250);
-      setTimeout(() => window.parent?.postMessage(msg, '*'), 750);
+      window.parent?.postMessage(msg, targetOrigin);
+      setTimeout(() => window.parent?.postMessage(msg, targetOrigin), 250);
+      setTimeout(() => window.parent?.postMessage(msg, targetOrigin), 750);
     } catch {
       // ignore
     }
@@ -107,12 +126,20 @@ export default function ShellRunnersSpectatePage() {
     setStatus('waiting');
 
     function onMessage(evt: MessageEvent) {
-      if (!ALLOWED_PARENT_ORIGINS.has(evt.origin)) return;
+      const trusted = trustedParentOriginRef.current;
+      if (trusted) {
+        if (evt.origin !== trusted) return;
+      } else {
+        if (!ALLOWED_PARENT_ORIGINS.has(evt.origin)) return;
+        trustedParentOriginRef.current = evt.origin;
+      }
       const data = evt.data;
       if (!data || typeof data !== 'object') return;
       const token = String((data as any).token ?? '').trim();
       const slug = String((data as any).slug ?? '').trim();
       const msgSessionId = String((data as any).sessionId ?? '').trim();
+      const msgNonce = String((data as any).nonce ?? '').trim();
+      if (!msgNonce || msgNonce !== readyNonceRef.current) return;
       if (!token || !slug || !msgSessionId) return;
       if (msgSessionId !== sessionId) return;
       setHandshake((prev) => {
@@ -182,13 +209,15 @@ export default function ShellRunnersSpectatePage() {
         setStatus('connecting');
         setError('Refreshing spectate token...');
         try {
+          const targetOrigin = trustedParentOriginRef.current;
+          if (!targetOrigin) return;
           window.parent?.postMessage(
             {
               source: 'moltstation-runtime',
               event: 'spectate_token_needed',
               payload: { reason, sessionId, slug: handshake.slug },
             },
-            '*'
+            targetOrigin
           );
         } catch {
           // ignore
