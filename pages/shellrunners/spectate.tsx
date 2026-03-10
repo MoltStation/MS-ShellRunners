@@ -425,22 +425,6 @@ export default function ShellRunnersSpectatePage() {
                 title={hudMinimized ? 'Expand panel' : 'Minimize panel'}>
                 {hudMinimized ? 'Expand' : 'Minimize'}
               </button>
-              <button
-                type='button'
-                onClick={() => setSoundEnabled((v) => !v)}
-                style={{
-                  border: '1px solid rgba(215,247,255,0.22)',
-                  borderRadius: 8,
-                  background: 'rgba(10,12,18,0.55)',
-                  color: '#d7f7ff',
-                  padding: '4px 8px',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  lineHeight: 1.1,
-                }}
-                title={soundEnabled ? 'Turn sound off' : 'Turn sound on'}>
-                Sound: {soundEnabled ? 'On' : 'Off'}
-              </button>
             </div>
           </div>
           {!hudMinimized ? (
