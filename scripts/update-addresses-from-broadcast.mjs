@@ -4,6 +4,9 @@ import { fileURLToPath } from 'url';
 
 const gameRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const target = path.join(gameRoot, 'public', 'config', 'addresses.json');
+const requireFlappyBots = ['1', 'true', 'yes', 'on'].includes(
+  String(process.env.REQUIRE_FLAPPYBOTS_ADDRESS || '').trim().toLowerCase()
+);
 
 function resolveAddress(keys) {
   for (const key of keys) {
@@ -16,6 +19,11 @@ function resolveAddress(keys) {
 const shellRunners = resolveAddress([
   'NEXT_PUBLIC_SHELLRUNNERS_ADDRESS',
   'SHELLRUNNERS_ADDRESS',
+]);
+const flappyBots = resolveAddress([
+  'NEXT_PUBLIC_FLAPPYBOTS_ADDRESS',
+  'MOLTBOT_FLAPPYBOTS_ADDRESS',
+  'FLAPPYBOTS_ADDRESS',
 ]);
 const market = resolveAddress([
   'NEXT_PUBLIC_MOLTBOT_MARKET_ADDRESS',
@@ -40,6 +48,7 @@ const popt = resolveAddress([
 
 const missing = [];
 if (!shellRunners) missing.push('shellRunners');
+if (!flappyBots && requireFlappyBots) missing.push('flappyBots');
 if (!market) missing.push('market');
 if (!identity) missing.push('identity');
 if (!rewards) missing.push('rewards');
@@ -52,6 +61,7 @@ if (missing.length > 0) {
 } else {
   const payload = {
     shellRunners,
+    flappyBots: flappyBots || '0x0000000000000000000000000000000000000000',
     market,
     identity,
     rewards,
