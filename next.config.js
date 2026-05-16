@@ -38,6 +38,16 @@ module.exports = {
     ],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'game.moltstation.games' }],
+        destination: 'https://shellrunners.moltstation.games/:path*',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     const frameAncestors = resolveFrameAncestors();
 
