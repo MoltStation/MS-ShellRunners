@@ -35,7 +35,7 @@ const TICK_MS = 1000 / 60;
 const PLAYER_Y = 78;
 const PLAYER_HEIGHT = 14;
 const ENTITY_HEIGHT = 12;
-const MOVE_COOLDOWN_MS = 155;
+const MOVE_COOLDOWN_MS = 190;
 const SHELL_ASSET = '/assets/img/shellrunner.png';
 const COLLECTIBLE_ASSETS = [
   '/assets/img/blue_star_fish.png',
@@ -89,7 +89,7 @@ function makeObstacle(id: number, score: number, lane?: number, y = -14): Entity
     kind: 'obstacle',
     lane: lane ?? Math.floor(Math.random() * LANES),
     y,
-    speed: 0.25 + Math.min(score / 2600, 0.16) + Math.random() * 0.1,
+    speed: 0.32 + Math.min(score / 2200, 0.18) + Math.random() * 0.12,
     asset: randomFrom(OBSTACLE_ASSETS),
     label: 'Obstacle',
   };
@@ -101,7 +101,7 @@ function makeCollectible(id: number, lane?: number, y = -12): Entity {
     kind: 'collectible',
     lane: lane ?? Math.floor(Math.random() * LANES),
     y,
-    speed: 0.25 + Math.random() * 0.08,
+    speed: 0.32 + Math.random() * 0.1,
     asset: randomFrom(COLLECTIBLE_ASSETS),
     label: 'Food',
   };
@@ -114,7 +114,7 @@ function makePowerup(id: number, lane?: number, y = -12): Entity {
     kind: 'powerup',
     lane: lane ?? Math.floor(Math.random() * LANES),
     y,
-    speed: 0.24 + Math.random() * 0.06,
+    speed: 0.3 + Math.random() * 0.08,
     asset: POWERUP_ASSETS[powerup],
     label: powerup === 'movement' ? 'Move' : powerup === 'invincibility' ? 'Shield' : 'Slow',
     powerup,
@@ -130,10 +130,10 @@ function makeEntity(id: number, score: number): Entity {
 
 function makeInitialEntities() {
   return [
-    makeObstacle(1, 0, 0, 12),
-    makeCollectible(2, 1, 28),
-    makeObstacle(3, 0, 2, 44),
-    makePowerup(4, 0, 62),
+    makeObstacle(1, 0, 0, -10),
+    makeCollectible(2, 1, 12),
+    makeObstacle(3, 0, 2, 34),
+    makePowerup(4, 0, 60),
   ];
 }
 
@@ -162,6 +162,7 @@ export default function ShellRunnersTestMode() {
   const nextSpawnAtRef = useRef(0);
   const lastTickRef = useRef(0);
   const lastMoveAtRef = useRef(0);
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
   const snapshotRef = useRef(snapshot);
 
   useEffect(() => {
@@ -172,7 +173,26 @@ export default function ShellRunnersTestMode() {
     setBestScore(readBestScore());
   }, []);
 
+  const ensureMusic = useCallback(() => {
+    if (typeof Audio === 'undefined') return;
+    if (!bgmRef.current) {
+      const audio = new Audio('/assets/audio/bgm.wav');
+      audio.loop = true;
+      audio.volume = 0.48;
+      bgmRef.current = audio;
+    }
+    void bgmRef.current.play().catch(() => {});
+  }, []);
+
+  const playSfx = useCallback((src: string, volume = 0.58) => {
+    if (typeof Audio === 'undefined') return;
+    const audio = new Audio(src);
+    audio.volume = volume;
+    void audio.play().catch(() => {});
+  }, []);
+
   const startGame = useCallback(() => {
+    ensureMusic();
     nextEntityIdRef.current = 5;
     nextSpawnAtRef.current = 420;
     lastTickRef.current = 0;
@@ -182,9 +202,17 @@ export default function ShellRunnersTestMode() {
       status: 'running',
       entities: makeInitialEntities(),
     });
-  }, []);
+  }, [ensureMusic]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      if (snapshotRef.current.status === 'ready') startGame();
+    }, 350);
+    return () => window.clearTimeout(id);
+  }, [startGame]);
 
   const moveLane = useCallback((delta: number) => {
+    ensureMusic();
     const now = performance.now();
     const current = snapshotRef.current;
     const cooldown =
@@ -195,6 +223,17 @@ export default function ShellRunnersTestMode() {
       ...state,
       lane: clampLane(state.lane + delta),
     }));
+  }, [ensureMusic]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        bgmRef.current?.pause();
+      } catch {
+        // ignore
+      }
+      bgmRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -241,8 +280,8 @@ export default function ShellRunnersTestMode() {
         const slowActive = state.slowUntil > state.distance;
         const invincible = state.invincibleUntil > state.distance;
         const speedScale = slowActive ? 0.52 : 1;
-        let score = state.score + delta * 0.017;
-        let hunger = clamp(state.hunger - delta * 0.026, 0, state.hungerMax);
+        let score = state.score + delta * 0.058;
+        let hunger = clamp(state.hunger - delta * 0.024, 0, state.hungerMax);
         let lives = state.lives;
         let message = '';
         let invincibleUntil = state.invincibleUntil;
@@ -251,14 +290,14 @@ export default function ShellRunnersTestMode() {
         let entities = state.entities
           .map((entity) => ({
             ...entity,
-            y: entity.y + entity.speed * delta * 0.16 * speedScale,
+            y: entity.y + entity.speed * delta * 0.18 * speedScale,
           }))
           .filter((entity) => entity.y < 114);
 
         nextSpawnAtRef.current -= delta;
         if (nextSpawnAtRef.current <= 0) {
           entities = [...entities, makeEntity(nextEntityIdRef.current++, score)];
-          nextSpawnAtRef.current = Math.max(360, 820 - score * 0.52);
+          nextSpawnAtRef.current = Math.max(300, 760 - score * 0.46);
         }
 
         const removeIds = new Set<number>();
@@ -272,8 +311,9 @@ export default function ShellRunnersTestMode() {
           removeIds.add(entity.id);
           if (entity.kind === 'collectible') {
             hunger = clamp(hunger + 34, 0, state.hungerMax);
-            score += 30;
+            score += 35;
             message = '+food';
+            playSfx('/assets/audio/starFish.wav', 0.52);
           } else if (entity.kind === 'powerup') {
             score += 18;
             if (entity.powerup === 'invincibility') {
@@ -286,13 +326,16 @@ export default function ShellRunnersTestMode() {
               message = 'move boost';
               movementUntil = distance + 190;
             }
+            playSfx('/assets/audio/powerup.wav', 0.52);
           } else if (invincible) {
             score += 12;
             message = 'blocked';
+            playSfx('/assets/audio/collision.wav', 0.32);
           } else {
             lives = Math.max(0, lives - 1);
             hunger = clamp(hunger - 18, 0, state.hungerMax);
             message = lives > 0 ? 'hit' : 'run ended';
+            playSfx('/assets/audio/collision.wav', 0.58);
           }
         }
 
@@ -376,7 +419,10 @@ export default function ShellRunnersTestMode() {
         </div>
       </section>
 
-      <section className='shell-practice__track' aria-label='ShellRunners practice track'>
+      <section
+        className='shell-practice__track'
+        aria-label='ShellRunners practice track'
+        onPointerDown={ensureMusic}>
         <div className='shell-practice__water' />
         <div className='shell-practice__bank shell-practice__bank--left' />
         <div className='shell-practice__bank shell-practice__bank--right' />
@@ -425,7 +471,7 @@ export default function ShellRunnersTestMode() {
         {snapshot.status !== 'running' && (
           <div className='shell-practice__overlay'>
             <strong>{snapshot.status === 'ended' ? 'Run ended' : 'Practice ready'}</strong>
-            <span>Local practice only. Rewards require official AI-agent sessions.</span>
+            <span>Local practice starts automatically. Click the run once to enable sound.</span>
             <button type='button' onClick={startGame}>
               {snapshot.status === 'ended' ? 'Restart Practice' : 'Start Practice'}
             </button>
@@ -433,7 +479,10 @@ export default function ShellRunnersTestMode() {
         )}
       </section>
 
-      <section className='shell-practice__controls' aria-label='Practice controls'>
+      <section
+        className='shell-practice__controls'
+        aria-label='Practice controls'
+        onPointerDown={ensureMusic}>
         <button type='button' onClick={() => moveLane(-1)} aria-label='Move left'>
           Left
         </button>

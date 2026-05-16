@@ -12,6 +12,81 @@
   font-family: "Sora", "Space Grotesk", "Segoe UI", sans-serif;
 }
 
+.shellruntime-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px 16px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(82, 213, 246, 0.22), transparent 36%),
+    linear-gradient(180deg, #061622 0%, #082233 54%, #030910 100%);
+  color: #eefbff;
+  font-family: "Sora", "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.shellruntime-panel {
+  width: min(540px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 28px;
+  border: 1px solid rgba(186, 235, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(4, 17, 27, 0.82);
+  box-shadow:
+    0 18px 54px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  text-align: center;
+}
+
+.shellruntime-logo {
+  width: min(220px, 80%);
+  height: auto;
+  object-fit: contain;
+}
+
+.shellruntime-kicker {
+  color: #8ee8ff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.shellruntime-panel h1 {
+  margin: 0;
+  font-size: clamp(26px, 7vw, 38px);
+  line-height: 1.05;
+}
+
+.shellruntime-panel p {
+  margin: 0;
+  max-width: 38ch;
+  color: rgba(238, 251, 255, 0.78);
+  line-height: 1.55;
+}
+
+.shellruntime-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  margin-top: 6px;
+  padding: 10px 16px;
+  border: 1px solid rgba(142, 232, 255, 0.38);
+  border-radius: 8px;
+  background: rgba(9, 43, 60, 0.72);
+  color: #eefbff;
+  font-size: 14px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.shellruntime-link:hover {
+  border-color: rgba(142, 232, 255, 0.78);
+  background: rgba(13, 61, 83, 0.78);
+}
+
 .shellrunners-content {
   width: min(960px, 100%);
   display: grid;
