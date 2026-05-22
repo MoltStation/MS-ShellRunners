@@ -31,11 +31,15 @@ type GameSnapshot = {
 };
 
 const LANES = 3;
-const TICK_MS = 1000 / 60;
+const TICK_MS = 1000 / 30;
 const PLAYER_Y = 78;
 const PLAYER_HEIGHT = 14;
 const ENTITY_HEIGHT = 12;
-const MOVE_COOLDOWN_MS = 190;
+const MOVE_COOLDOWN_MS = 285;
+const BASE_SCORE_RATE = 7.5;
+const MAX_SCORE_RATE_BONUS = 8;
+const HUNGER_DRAIN_PER_SECOND = 8;
+const COLLECTIBLE_HUNGER_GAIN = 38;
 const SHELL_ASSET = '/assets/img/shellrunner.png';
 const COLLECTIBLE_ASSETS = [
   '/assets/img/blue_star_fish.png',
@@ -89,7 +93,7 @@ function makeObstacle(id: number, score: number, lane?: number, y = -14): Entity
     kind: 'obstacle',
     lane: lane ?? Math.floor(Math.random() * LANES),
     y,
-    speed: 0.32 + Math.min(score / 2200, 0.18) + Math.random() * 0.12,
+    speed: 20 + Math.min(score / 350, 10) + Math.random() * 4,
     asset: randomFrom(OBSTACLE_ASSETS),
     label: 'Obstacle',
   };
@@ -101,7 +105,7 @@ function makeCollectible(id: number, lane?: number, y = -12): Entity {
     kind: 'collectible',
     lane: lane ?? Math.floor(Math.random() * LANES),
     y,
-    speed: 0.32 + Math.random() * 0.1,
+    speed: 18 + Math.random() * 3,
     asset: randomFrom(COLLECTIBLE_ASSETS),
     label: 'Food',
   };
@@ -114,26 +118,27 @@ function makePowerup(id: number, lane?: number, y = -12): Entity {
     kind: 'powerup',
     lane: lane ?? Math.floor(Math.random() * LANES),
     y,
-    speed: 0.3 + Math.random() * 0.08,
+    speed: 17 + Math.random() * 3,
     asset: POWERUP_ASSETS[powerup],
     label: powerup === 'movement' ? 'Move' : powerup === 'invincibility' ? 'Shield' : 'Slow',
     powerup,
   };
 }
 
-function makeEntity(id: number, score: number): Entity {
+function makeEntity(id: number, score: number, targetLane?: number): Entity {
   const roll = Math.random();
   if (roll > 0.87) return makePowerup(id);
   if (roll > 0.64) return makeCollectible(id);
-  return makeObstacle(id, score);
+  const lane = targetLane !== undefined && Math.random() > 0.28 ? targetLane : undefined;
+  return makeObstacle(id, score, lane);
 }
 
 function makeInitialEntities() {
   return [
-    makeObstacle(1, 0, 0, -10),
-    makeCollectible(2, 1, 12),
-    makeObstacle(3, 0, 2, 34),
-    makePowerup(4, 0, 60),
+    makeObstacle(1, 0, 1, -8),
+    makeCollectible(2, 0, 15),
+    makeObstacle(3, 0, 2, 38),
+    makePowerup(4, 0, 66),
   ];
 }
 
@@ -160,10 +165,11 @@ export default function ShellRunnersTestMode() {
   const [snapshot, setSnapshot] = useState<GameSnapshot>(() => createInitialSnapshot());
   const nextEntityIdRef = useRef(5);
   const nextSpawnAtRef = useRef(0);
-  const lastTickRef = useRef(0);
   const lastMoveAtRef = useRef(0);
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const snapshotRef = useRef(snapshot);
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const musicEnabledRef = useRef(true);
 
   useEffect(() => {
     snapshotRef.current = snapshot;
@@ -174,6 +180,7 @@ export default function ShellRunnersTestMode() {
   }, []);
 
   const ensureMusic = useCallback(() => {
+    if (!musicEnabledRef.current) return;
     if (typeof Audio === 'undefined') return;
     if (!bgmRef.current) {
       const audio = new Audio('/assets/audio/bgm.wav');
@@ -184,7 +191,31 @@ export default function ShellRunnersTestMode() {
     void bgmRef.current.play().catch(() => {});
   }, []);
 
+  const pauseMusic = useCallback(() => {
+    try {
+      bgmRef.current?.pause();
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const toggleMusic = useCallback((event?: React.MouseEvent<HTMLButtonElement>) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    setMusicEnabled((enabled) => {
+      const next = !enabled;
+      musicEnabledRef.current = next;
+      if (next) {
+        window.setTimeout(() => ensureMusic(), 0);
+      } else {
+        pauseMusic();
+      }
+      return next;
+    });
+  }, [ensureMusic, pauseMusic]);
+
   const playSfx = useCallback((src: string, volume = 0.58) => {
+    if (!musicEnabledRef.current) return;
     if (typeof Audio === 'undefined') return;
     const audio = new Audio(src);
     audio.volume = volume;
@@ -194,8 +225,7 @@ export default function ShellRunnersTestMode() {
   const startGame = useCallback(() => {
     ensureMusic();
     nextEntityIdRef.current = 5;
-    nextSpawnAtRef.current = 420;
-    lastTickRef.current = 0;
+    nextSpawnAtRef.current = 520;
     lastMoveAtRef.current = 0;
     setSnapshot({
       ...createInitialSnapshot(),
@@ -258,46 +288,39 @@ export default function ShellRunnersTestMode() {
   }, [moveLane, startGame]);
 
   useEffect(() => {
-    let raf = 0;
-
-    const tick = (time: number) => {
-      raf = window.requestAnimationFrame(tick);
+    const id = window.setInterval(() => {
       const current = snapshotRef.current;
-      if (current.status !== 'running') {
-        lastTickRef.current = time;
-        return;
-      }
-
-      const previous = lastTickRef.current || time;
-      const delta = Math.min(48, time - previous);
-      if (delta < TICK_MS * 0.45) return;
-      lastTickRef.current = time;
+      if (current.status !== 'running') return;
+      const delta = TICK_MS;
 
       setSnapshot((state) => {
         if (state.status !== 'running') return state;
 
-        const distance = state.distance + delta * 0.058;
+        const seconds = delta / 1000;
         const slowActive = state.slowUntil > state.distance;
         const invincible = state.invincibleUntil > state.distance;
         const speedScale = slowActive ? 0.52 : 1;
-        let score = state.score + delta * 0.058;
-        let hunger = clamp(state.hunger - delta * 0.024, 0, state.hungerMax);
+        const scoreRate = (BASE_SCORE_RATE + Math.min(state.score / 250, MAX_SCORE_RATE_BONUS)) * speedScale;
+        const distance = state.distance + scoreRate * seconds;
+        let score = state.score + scoreRate * seconds;
+        let hunger = clamp(state.hunger - HUNGER_DRAIN_PER_SECOND * seconds, 0, state.hungerMax);
         let lives = state.lives;
         let message = '';
         let invincibleUntil = state.invincibleUntil;
         let slowUntil = state.slowUntil;
         let movementUntil = state.movementUntil;
+        let lostLifeThisTick = false;
         let entities = state.entities
           .map((entity) => ({
             ...entity,
-            y: entity.y + entity.speed * delta * 0.18 * speedScale,
+            y: entity.y + entity.speed * seconds * speedScale,
           }))
           .filter((entity) => entity.y < 114);
 
         nextSpawnAtRef.current -= delta;
         if (nextSpawnAtRef.current <= 0) {
-          entities = [...entities, makeEntity(nextEntityIdRef.current++, score)];
-          nextSpawnAtRef.current = Math.max(300, 760 - score * 0.46);
+          entities = [...entities, makeEntity(nextEntityIdRef.current++, score, state.lane)];
+          nextSpawnAtRef.current = Math.max(760, 1280 - score * 0.28);
         }
 
         const removeIds = new Set<number>();
@@ -310,30 +333,31 @@ export default function ShellRunnersTestMode() {
 
           removeIds.add(entity.id);
           if (entity.kind === 'collectible') {
-            hunger = clamp(hunger + 34, 0, state.hungerMax);
-            score += 35;
+            hunger = clamp(hunger + COLLECTIBLE_HUNGER_GAIN, 0, state.hungerMax);
+            score += 100;
             message = '+food';
             playSfx('/assets/audio/starFish.wav', 0.52);
           } else if (entity.kind === 'powerup') {
-            score += 18;
+            score += 25;
             if (entity.powerup === 'invincibility') {
               message = 'shield';
-              invincibleUntil = distance + 210;
+              invincibleUntil = distance + 42;
             } else if (entity.powerup === 'slow') {
               message = 'slow';
-              slowUntil = distance + 190;
+              slowUntil = distance + 38;
             } else {
               message = 'move boost';
-              movementUntil = distance + 190;
+              movementUntil = distance + 38;
             }
             playSfx('/assets/audio/powerup.wav', 0.52);
           } else if (invincible) {
-            score += 12;
+            score += 25;
             message = 'blocked';
             playSfx('/assets/audio/collision.wav', 0.32);
           } else {
             lives = Math.max(0, lives - 1);
-            hunger = clamp(hunger - 18, 0, state.hungerMax);
+            lostLifeThisTick = true;
+            hunger = Math.max(0, hunger - 24);
             message = lives > 0 ? 'hit' : 'run ended';
             playSfx('/assets/audio/collision.wav', 0.58);
           }
@@ -343,9 +367,9 @@ export default function ShellRunnersTestMode() {
           entities = entities.filter((entity) => !removeIds.has(entity.id));
         }
 
-        if (hunger <= 0) {
+        if (hunger <= 0 && !lostLifeThisTick) {
           lives = Math.max(0, lives - 1);
-          hunger = lives > 0 ? Math.round(state.hungerMax * 0.44) : 0;
+          hunger = lives > 0 ? Math.round(state.hungerMax * 0.5) : 0;
           message = lives > 0 ? 'hungry' : 'run ended';
         }
 
@@ -381,11 +405,10 @@ export default function ShellRunnersTestMode() {
           message,
         };
       });
-    };
+    }, TICK_MS);
 
-    raf = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(raf);
-  }, []);
+    return () => window.clearInterval(id);
+  }, [playSfx]);
 
   const laneStyle = useMemo(
     () => ({
@@ -399,7 +422,7 @@ export default function ShellRunnersTestMode() {
   const movementActive = snapshot.movementUntil > snapshot.distance;
 
   return (
-    <main className='shell-practice'>
+    <main className='shell-practice' onPointerDown={ensureMusic}>
       <section className='shell-practice__hud' aria-label='Practice status'>
         <div className='shell-practice__brand'>
           <img src='/assets/img/logo.png' alt='ShellRunners' />
@@ -491,6 +514,9 @@ export default function ShellRunnersTestMode() {
         </button>
         <button type='button' onClick={() => moveLane(1)} aria-label='Move right'>
           Right
+        </button>
+        <button type='button' onClick={toggleMusic}>
+          Audio {musicEnabled ? 'On' : 'Off'}
         </button>
       </section>
 
@@ -719,7 +745,7 @@ export default function ShellRunnersTestMode() {
           transform: translate(-50%, -50%);
           user-select: none;
           pointer-events: none;
-          transition: left 170ms ease;
+          transition: left 260ms ease;
         }
 
         .shell-practice__player {

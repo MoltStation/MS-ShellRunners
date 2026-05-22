@@ -13,78 +13,82 @@
 }
 
 .shellruntime-page {
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
   display: grid;
   place-items: center;
-  padding: 28px 16px;
+  padding: 24px;
   background:
-    radial-gradient(circle at 50% 0%, rgba(82, 213, 246, 0.22), transparent 36%),
-    linear-gradient(180deg, #061622 0%, #082233 54%, #030910 100%);
-  color: #eefbff;
-  font-family: "Sora", "Space Grotesk", "Segoe UI", sans-serif;
+    radial-gradient(circle at 20% 18%, rgba(69, 240, 255, 0.12), transparent 28%),
+    radial-gradient(circle at 78% 12%, rgba(255, 95, 143, 0.1), transparent 24%),
+    #07111f;
+  color: #e8fbff;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .shellruntime-panel {
-  width: min(540px, 100%);
+  width: min(560px, 100%);
+  min-height: 360px;
   display: grid;
+  align-content: center;
   justify-items: center;
   gap: 12px;
-  padding: 28px;
-  border: 1px solid rgba(186, 235, 255, 0.24);
+  padding: 24px;
+  border: 1px solid rgba(136, 246, 255, 0.24);
   border-radius: 8px;
-  background: rgba(4, 17, 27, 0.82);
+  background: rgba(8, 14, 27, 0.72);
   box-shadow:
-    0 18px 54px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 18px 44px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(10px);
   text-align: center;
 }
 
 .shellruntime-logo {
-  width: min(220px, 80%);
+  width: min(300px, 86%);
   height: auto;
   object-fit: contain;
 }
 
 .shellruntime-kicker {
-  color: #8ee8ff;
+  color: #ffcf5f;
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .shellruntime-panel h1 {
   margin: 0;
-  font-size: clamp(26px, 7vw, 38px);
-  line-height: 1.05;
+  font-size: 28px;
+  line-height: 1.1;
 }
 
 .shellruntime-panel p {
   margin: 0;
-  max-width: 38ch;
-  color: rgba(238, 251, 255, 0.78);
-  line-height: 1.55;
+  max-width: 40ch;
+  color: rgba(232, 251, 255, 0.72);
+  line-height: 1.5;
 }
 
 .shellruntime-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  margin-top: 6px;
-  padding: 10px 16px;
-  border: 1px solid rgba(142, 232, 255, 0.38);
+  min-height: 40px;
+  padding: 9px 13px;
+  border: 1px solid rgba(69, 240, 255, 0.38);
   border-radius: 8px;
-  background: rgba(9, 43, 60, 0.72);
-  color: #eefbff;
-  font-size: 14px;
-  font-weight: 750;
+  background: rgba(69, 240, 255, 0.12);
+  color: #e8fbff;
+  font: inherit;
   text-decoration: none;
 }
 
 .shellruntime-link:hover {
-  border-color: rgba(142, 232, 255, 0.78);
-  background: rgba(13, 61, 83, 0.78);
+  border-color: rgba(69, 240, 255, 0.72);
+  background: rgba(69, 240, 255, 0.18);
 }
 
 .shellrunners-content {
