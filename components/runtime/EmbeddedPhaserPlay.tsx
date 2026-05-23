@@ -54,6 +54,8 @@ function resolveApiBase() {
   const host = String(window.location.hostname || '').toLowerCase();
   const protocol = String(window.location.protocol || 'https:');
   if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:4100';
+  if (host === 'shellrunners.moltstation.games') return `${protocol}//api.moltstation.games`;
+  if (host.endsWith('.moltstation.games')) return `${protocol}//api.moltstation.games`;
   if (host.startsWith('game.')) return `${protocol}//api.${host.slice(5)}`;
   return '';
 }
@@ -113,8 +115,6 @@ type PlayHandshake = {
   slug: string;
 };
 
-type Dir = 'left' | 'right' | 'none';
-
 export default function EmbeddedPhaserPlay() {
   const router = useRouter();
   const sessionId = String(router.query?.sessionId ?? '').trim();
@@ -137,8 +137,6 @@ export default function EmbeddedPhaserPlay() {
   const wsRef = useRef<WebSocket | null>(null);
   const wsKeyRef = useRef(0);
   const closingRef = useRef(false);
-  const lastDirRef = useRef<Dir>('none');
-  const pressedRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
   const onExitRef = useRef<() => void>(() => {});
   const trustedParentOriginRef = useRef('');
   const readyNonceRef = useRef('');
@@ -237,24 +235,6 @@ export default function EmbeddedPhaserPlay() {
     return () => window.removeEventListener('message', onMessage);
   }, [sessionId]);
 
-  const computeDir = () => {
-    const pressed = pressedRef.current;
-    if (pressed.left && !pressed.right) return 'left';
-    if (pressed.right && !pressed.left) return 'right';
-    return 'none';
-  };
-
-  const sendDir = (ws: WebSocket, dir: Dir) => {
-    if (ws.readyState !== ws.OPEN) return;
-    if (dir === lastDirRef.current) return;
-    lastDirRef.current = dir;
-    try {
-      ws.send(JSON.stringify({ t: 'input', dir }));
-    } catch {
-      // ignore
-    }
-  };
-
   const postRuntimeExit = (reason: string) => {
     try {
       const targetOrigin = trustedParentOriginRef.current || resolveBootstrapParentOrigin(coreOrigin);
@@ -348,14 +328,11 @@ export default function EmbeddedPhaserPlay() {
 
     const ws = new WebSocket(url);
     wsRef.current = ws;
-    lastDirRef.current = 'none';
-    pressedRef.current = { left: false, right: false };
 
     ws.onopen = () => {
       if (wsKey !== wsKeyRef.current) return;
       setStatus('connected');
       setError(null);
-      sendDir(ws, 'none');
     };
     ws.onmessage = (evt) => {
       if (wsKey !== wsKeyRef.current) return;
@@ -416,26 +393,8 @@ export default function EmbeddedPhaserPlay() {
       setError(reason ? `Disconnected: ${reason}` : 'Disconnected.');
     };
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') pressedRef.current.left = true;
-      if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pressedRef.current.right = true;
-      const dir = computeDir();
-      sendDir(ws, dir);
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') pressedRef.current.left = false;
-      if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pressedRef.current.right = false;
-      const dir = computeDir();
-      sendDir(ws, dir);
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-
     return () => {
       closingRef.current = true;
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
       try {
         ws.close();
       } catch {
@@ -778,18 +737,6 @@ export default function EmbeddedPhaserPlay() {
   const hungerCurrent = Math.max(0, Number((frame as any)?.hunger ?? 0));
   const hungerMax = Math.max(1, Number((frame as any)?.hungerMax ?? 220));
   const hungerRatio = clamp01(hungerCurrent / hungerMax);
-  const isPaused = phase === 'paused';
-
-  const togglePause = () => {
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== ws.OPEN) return;
-    const cmd = isPaused ? 'resume' : 'pause';
-    try {
-      ws.send(JSON.stringify({ t: 'cmd', cmd }));
-    } catch {
-      // ignore
-    }
-  };
 
   return (
     <main
@@ -964,68 +911,7 @@ export default function EmbeddedPhaserPlay() {
           zIndex: 30,
         }}
       >
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            type='button'
-            onPointerDown={() => {
-              const ws = wsRef.current;
-              pressedRef.current.left = true;
-              if (ws) sendDir(ws, computeDir());
-            }}
-            onPointerUp={() => {
-              const ws = wsRef.current;
-              pressedRef.current.left = false;
-              if (ws) sendDir(ws, computeDir());
-            }}
-            onPointerCancel={() => {
-              const ws = wsRef.current;
-              pressedRef.current.left = false;
-              if (ws) sendDir(ws, computeDir());
-            }}
-            style={{
-              borderRadius: 12,
-              padding: '10px 14px',
-              border: '1px solid rgba(215,247,255,0.22)',
-              background: 'rgba(10,12,18,0.50)',
-              color: '#d7f7ff',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: 12,
-            }}
-          >
-            Left
-          </button>
-          <button
-            type='button'
-            onPointerDown={() => {
-              const ws = wsRef.current;
-              pressedRef.current.right = true;
-              if (ws) sendDir(ws, computeDir());
-            }}
-            onPointerUp={() => {
-              const ws = wsRef.current;
-              pressedRef.current.right = false;
-              if (ws) sendDir(ws, computeDir());
-            }}
-            onPointerCancel={() => {
-              const ws = wsRef.current;
-              pressedRef.current.right = false;
-              if (ws) sendDir(ws, computeDir());
-            }}
-            style={{
-              borderRadius: 12,
-              padding: '10px 14px',
-              border: '1px solid rgba(215,247,255,0.22)',
-              background: 'rgba(10,12,18,0.50)',
-              color: '#d7f7ff',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: 12,
-            }}
-          >
-            Right
-          </button>
-        </div>
+        <div />
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button
@@ -1043,22 +929,6 @@ export default function EmbeddedPhaserPlay() {
             }}
           >
             Sound: {soundEnabled ? 'On' : 'Off'}
-          </button>
-          <button
-            type='button'
-            onClick={togglePause}
-            style={{
-              borderRadius: 12,
-              padding: '10px 14px',
-              border: '1px solid rgba(215,247,255,0.22)',
-              background: 'rgba(10,12,18,0.50)',
-              color: '#d7f7ff',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: 12,
-            }}
-          >
-            {isPaused ? 'Resume' : 'Pause'}
           </button>
           <button
             type='button'

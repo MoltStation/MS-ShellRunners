@@ -22,6 +22,13 @@ function resolveFrameAncestors() {
   return [...new Set([...fromEnv, ...localDefaults])].join(' ');
 }
 
+const SECURITY_HEADERS = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'geolocation=(), camera=(), microphone=()' },
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
+];
+
 module.exports = {
   reactStrictMode: true,
   // OneDrive can lock `.next/trace` causing EPERM during `next build` on Windows.
@@ -53,6 +60,10 @@ module.exports = {
 
     return [
       {
+        source: "/:path*",
+        headers: SECURITY_HEADERS,
+      },
+      {
         source: "/shellrunners/spectate",
         headers: [
           {
@@ -63,6 +74,15 @@ module.exports = {
       },
       {
         source: "/shellrunners",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: `frame-ancestors ${frameAncestors};`,
+          },
+        ],
+      },
+      {
+        source: "/shellrunners/test",
         headers: [
           {
             key: "Content-Security-Policy",
