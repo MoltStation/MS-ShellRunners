@@ -52,8 +52,6 @@ function resolveApiBase() {
   const host = String(window.location.hostname || '').toLowerCase();
   const protocol = String(window.location.protocol || 'https:');
   if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:4100';
-  if (host === 'shellrunners.moltstation.games') return `${protocol}//api.moltstation.games`;
-  if (host.endsWith('.moltstation.games')) return `${protocol}//api.moltstation.games`;
   if (host.startsWith('game.')) return `${protocol}//api.${host.slice(5)}`;
   return '';
 }
