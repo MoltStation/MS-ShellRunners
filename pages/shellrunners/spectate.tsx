@@ -25,6 +25,10 @@ const TOKEN_RECOVERY_REASONS = new Set([
   'INVALID_TOKEN',
 ]);
 
+function buildWsAuthProtocols(token: string) {
+  return ['molt-v1', `molt-token.${token}`];
+}
+
 function resolveBootstrapParentOrigin() {
   if (typeof document === 'undefined') return '';
   const referrer = String(document.referrer || '').trim();
@@ -268,9 +272,9 @@ export default function ShellRunnersSpectatePage() {
 
     const url = `${wsBase}/ws/${encodeURIComponent(handshake.slug)}/spectate?sessionId=${encodeURIComponent(
       handshake.sessionId
-    )}&token=${encodeURIComponent(handshake.token)}`;
+    )}`;
 
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, buildWsAuthProtocols(handshake.token));
     wsRef.current = ws;
 
     ws.onopen = () => {

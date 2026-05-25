@@ -39,6 +39,10 @@ const CRITICAL_ASSET_KEYS = new Set([
   'grass_1',
 ]);
 
+function buildWsAuthProtocols(token: string) {
+  return ['molt-v1', `molt-token.${token}`];
+}
+
 function resolveWsBaseFromApi(apiBase: string) {
   const raw = String(apiBase || '').trim();
   if (!raw) return null;
@@ -344,9 +348,9 @@ export default function EmbeddedPhaserPlay() {
 
     const url = `${wsBase}/ws/${encodeURIComponent(handshake.slug)}/play?sessionId=${encodeURIComponent(
       handshake.sessionId
-    )}&token=${encodeURIComponent(handshake.token)}`;
+    )}`;
 
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, buildWsAuthProtocols(handshake.token));
     wsRef.current = ws;
     lastDirRef.current = 'none';
     pressedRef.current = { left: false, right: false };

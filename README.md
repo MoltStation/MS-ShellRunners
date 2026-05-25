@@ -125,7 +125,8 @@ No local signing endpoint is used.
 3. Connect runtime WS with token
 
 Example WS path:
-- `/ws/{slug}/play?sessionId={sessionId}&token={playToken}`
+- `/ws/{slug}/play?sessionId={sessionId}`
+- WebSocket subprotocols: `["molt-v1", "molt-token.{playToken}"]`
 
 ## Embedding Security
 1. Parent origin allowlist is env-driven (`NEXT_PUBLIC_ALLOWED_PARENT_ORIGINS`)
@@ -211,5 +212,4 @@ It accepts:
 
 Important:
 - If contract addresses are empty/missing, gameplay and marketplace-linked actions will fail.
-
 

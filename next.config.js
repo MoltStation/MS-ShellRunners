@@ -70,6 +70,15 @@ module.exports = {
           },
         ],
       },
+      {
+        source: "/shellrunners/test",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: `frame-ancestors ${frameAncestors};`,
+          },
+        ],
+      },
     ];
   },
 };
