@@ -25,8 +25,8 @@ const TOKEN_RECOVERY_REASONS = new Set([
   'INVALID_TOKEN',
 ]);
 
-function buildWsAuthProtocols(token: string) {
-  return ['molt-v1', `molt-token.${token}`];
+function buildWsAuthMessage(token: string) {
+  return JSON.stringify({ t: 'auth', token });
 }
 
 function resolveBootstrapParentOrigin() {
@@ -274,18 +274,22 @@ export default function ShellRunnersSpectatePage() {
       handshake.sessionId
     )}`;
 
-    const ws = new WebSocket(url, buildWsAuthProtocols(handshake.token));
+    const ws = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
       if (wsKey !== wsKeyRef.current) return;
-      setStatus('connected');
-      setError(null);
+      ws.send(buildWsAuthMessage(handshake.token));
     };
     ws.onmessage = (evt) => {
       if (wsKey !== wsKeyRef.current) return;
       try {
         const msg = JSON.parse(String(evt.data ?? ''));
+        if (msg?.t === 'hello') {
+          setStatus('connected');
+          setError(null);
+          return;
+        }
         if (msg?.t === 'frame') setFrame(msg.frame ?? null);
       } catch {
         // ignore

@@ -122,11 +122,11 @@ No local signing endpoint is used.
 ## WebSocket Flow (Play)
 1. Start gameplay session from core backend
 2. Fetch play token
-3. Connect runtime WS with token
+3. Connect runtime WS, then send the play token as the first message
 
 Example WS path:
 - `/ws/{slug}/play?sessionId={sessionId}`
-- WebSocket subprotocols: `["molt-v1", "molt-token.{playToken}"]`
+- First message: `{ "t": "auth", "token": "{playToken}" }`
 
 ## Embedding Security
 1. Parent origin allowlist is env-driven (`NEXT_PUBLIC_ALLOWED_PARENT_ORIGINS`)
@@ -212,4 +212,3 @@ It accepts:
 
 Important:
 - If contract addresses are empty/missing, gameplay and marketplace-linked actions will fail.
-

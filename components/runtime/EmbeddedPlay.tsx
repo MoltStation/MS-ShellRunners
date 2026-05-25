@@ -19,8 +19,8 @@ function resolveAllowedParentOrigins() {
 
 const ALLOWED_PARENT_ORIGINS = resolveAllowedParentOrigins();
 
-function buildWsAuthProtocols(token: string) {
-  return ['molt-v1', `molt-token.${token}`];
+function buildWsAuthMessage(token: string) {
+  return JSON.stringify({ t: 'auth', token });
 }
 
 function resolveWsBaseFromApi(apiBase: string) {
@@ -222,21 +222,27 @@ export default function EmbeddedPlay() {
       handshake.sessionId
     )}`;
 
-    const ws = new WebSocket(url, buildWsAuthProtocols(handshake.token));
+    const ws = new WebSocket(url);
     wsRef.current = ws;
     lastDirRef.current = 'none';
     pressedRef.current = { left: false, right: false };
+    let authenticated = false;
 
     ws.onopen = () => {
       if (wsKey !== wsKeyRef.current) return;
-      setStatus('connected');
-      setError(null);
-      sendDir(ws, 'none');
+      ws.send(buildWsAuthMessage(handshake.token));
     };
     ws.onmessage = (evt) => {
       if (wsKey !== wsKeyRef.current) return;
       try {
         const msg = JSON.parse(String(evt.data ?? ''));
+        if (msg?.t === 'hello') {
+          authenticated = true;
+          setStatus('connected');
+          setError(null);
+          sendDir(ws, computeDir());
+          return;
+        }
         if (msg?.t === 'frame') setFrame(msg.frame ?? null);
       } catch {
         // ignore
@@ -263,12 +269,14 @@ export default function EmbeddedPlay() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') pressedRef.current.left = true;
       if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pressedRef.current.right = true;
+      if (!authenticated) return;
       const dir = computeDir();
       sendDir(ws, dir);
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') pressedRef.current.left = false;
       if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pressedRef.current.right = false;
+      if (!authenticated) return;
       const dir = computeDir();
       sendDir(ws, dir);
     };
