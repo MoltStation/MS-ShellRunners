@@ -35,6 +35,7 @@ function resolvePowerUpUrl(kind: string) {
   if (!k) return '';
   if (k === 'MovementSpeedPowerUp') return '/assets/img/movement_power.png';
   if (k === 'InvincibilityPowerUp') return '/assets/img/invincibility_power.png';
+  if (k === 'ScrollSlowPowerUp') return '/assets/img/slow_scroll_power.png';
   if (k === 'ScrollSpeedSlowPowerUp') return '/assets/img/slow_scroll_power.png';
   return '';
 }
