@@ -35,6 +35,13 @@ type GameSnapshot = {
   slowMs: number;
   movementMs: number;
   hungerTickMs: number;
+  speedIncreaseCountdownMs: number;
+  speedTween: {
+    from: number;
+    to: number;
+    elapsedMs: number;
+    durationMs: number;
+  } | null;
   entities: PracticeEntity[];
   message: string;
 };
@@ -55,9 +62,11 @@ const HUNGER_INC = 5;
 const HUNGER_DEC = 45;
 const HUNGER_THRESHOLD_MS = 500;
 const COLLECTIBLE_SCORE_MULT = 100;
-const INIT_SCROLL_SPEED = 0.16;
-const MAX_SCROLL_SPEED = 0.72;
-const SPEED_INCREASE_PER_MS = 0.0000026;
+const INIT_SCROLL_SPEED = 0.12;
+const MAX_SCROLL_SPEED = 0.75;
+const SPEED_INCREASE_THRESHOLD_MS = 12000;
+const SPEED_INCREASE = 0.035;
+const SPEED_INCREASE_TWEEN_MS = 4000;
 const GHOST_DURATION_MS = 1850;
 const INVINCIBLE_DURATION_MS = 5500;
 const MOVE_BOOST_DURATION_MS = 5000;
@@ -183,6 +192,8 @@ function createInitialSnapshot(best = 0): GameSnapshot {
     slowMs: 0,
     movementMs: 0,
     hungerTickMs: 0,
+    speedIncreaseCountdownMs: SPEED_INCREASE_THRESHOLD_MS,
+    speedTween: null,
     entities: makeInitialEntities(),
     message: '',
   };
@@ -197,6 +208,45 @@ function overlapsPlayer(entity: PracticeEntity, playerX: number) {
     return dx <= halfW + PLAYER_RADIUS * 0.42 && dy <= halfH + PLAYER_RADIUS * 0.45;
   }
   return dx <= 92 && dy <= 92;
+}
+
+function updateScrollSpeed(state: GameSnapshot, dtMs: number) {
+  let scrollSpeed = state.scrollSpeed;
+  let speedTween = state.speedTween;
+  let speedIncreaseCountdownMs = state.speedIncreaseCountdownMs;
+
+  if (speedTween) {
+    const elapsedMs = speedTween.elapsedMs + dtMs;
+    const progress = clamp(elapsedMs / Math.max(1, speedTween.durationMs), 0, 1);
+    scrollSpeed = speedTween.from + (speedTween.to - speedTween.from) * progress;
+    speedTween =
+      progress >= 1
+        ? null
+        : {
+            ...speedTween,
+            elapsedMs,
+          };
+  }
+
+  if (!speedTween && scrollSpeed < MAX_SCROLL_SPEED) {
+    speedIncreaseCountdownMs -= dtMs;
+    if (speedIncreaseCountdownMs <= 0) {
+      speedIncreaseCountdownMs = SPEED_INCREASE_THRESHOLD_MS;
+      const target = clamp(scrollSpeed + SPEED_INCREASE, INIT_SCROLL_SPEED, MAX_SCROLL_SPEED);
+      speedTween = {
+        from: scrollSpeed,
+        to: target,
+        elapsedMs: 0,
+        durationMs: SPEED_INCREASE_TWEEN_MS,
+      };
+    }
+  }
+
+  return {
+    scrollSpeed,
+    speedIncreaseCountdownMs,
+    speedTween,
+  };
 }
 
 export default function ShellRunnersTestMode() {
@@ -333,7 +383,11 @@ export default function ShellRunnersTestMode() {
         const invincibleActive = state.invincibleMs > 0;
         const movementActive = state.movementMs > 0;
         const scrollScale = slowActive ? 0.55 : 1;
-        const scrollSpeed = clamp(state.scrollSpeed + SPEED_INCREASE_PER_MS * dtMs, INIT_SCROLL_SPEED, MAX_SCROLL_SPEED);
+        const {
+          scrollSpeed,
+          speedIncreaseCountdownMs,
+          speedTween,
+        } = updateScrollSpeed(state, dtMs);
         let playerX = state.playerX;
         let score = state.score + scrollSpeed * 60 * dtSec;
         let lives = state.lives;
@@ -438,6 +492,8 @@ export default function ShellRunnersTestMode() {
             invincibleMs,
             slowMs,
             movementMs,
+            speedIncreaseCountdownMs,
+            speedTween,
             tMs: state.tMs + dtMs,
             tick: state.tick + 1,
             entities,
@@ -458,6 +514,8 @@ export default function ShellRunnersTestMode() {
           invincibleMs,
           slowMs,
           movementMs,
+          speedIncreaseCountdownMs,
+          speedTween,
           tMs: state.tMs + dtMs,
           tick: state.tick + 1,
           entities,
