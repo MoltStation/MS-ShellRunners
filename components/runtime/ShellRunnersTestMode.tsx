@@ -56,17 +56,16 @@ const PLAYER_SPEED_PX_PER_SECOND = 540;
 const PLAYER_RADIUS = 64;
 const ENTITY_CULL_Y = DESIGN_H + 180;
 
-const TICK_TARGET_MS = 1000 / 60;
 const HUNGER_EMPTY = 220;
 const HUNGER_INC = 5;
 const HUNGER_DEC = 45;
 const HUNGER_THRESHOLD_MS = 500;
 const COLLECTIBLE_SCORE_MULT = 100;
-const INIT_SCROLL_SPEED = 0.12;
-const MAX_SCROLL_SPEED = 0.75;
-const SPEED_INCREASE_THRESHOLD_MS = 12000;
-const SPEED_INCREASE = 0.035;
-const SPEED_INCREASE_TWEEN_MS = 4000;
+const INIT_SCROLL_SPEED = 0.055;
+const MAX_SCROLL_SPEED = 0.38;
+const SPEED_INCREASE_THRESHOLD_MS = 24000;
+const SPEED_INCREASE = 0.018;
+const SPEED_INCREASE_TWEEN_MS = 6000;
 const GHOST_DURATION_MS = 1850;
 const INVINCIBLE_DURATION_MS = 5500;
 const MOVE_BOOST_DURATION_MS = 5000;
@@ -253,6 +252,7 @@ export default function ShellRunnersTestMode() {
   const [bestScore, setBestScore] = useState(0);
   const [snapshot, setSnapshot] = useState<GameSnapshot>(() => createInitialSnapshot());
   const [musicEnabled, setMusicEnabled] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
   const snapshotRef = useRef(snapshot);
   const pressedRef = useRef({ left: false, right: false });
   const nextEntityIdRef = useRef(5);
@@ -316,7 +316,7 @@ export default function ShellRunnersTestMode() {
     ensureMusic();
     pressedRef.current = { left: false, right: false };
     nextEntityIdRef.current = 5;
-    nextSpawnAtRef.current = 620;
+    nextSpawnAtRef.current = 950;
     const best = readBestScore();
     setBestScore(best);
     setSnapshot({
@@ -373,7 +373,7 @@ export default function ShellRunnersTestMode() {
     const step = (now: number) => {
       const prev = lastFrameAtRef.current || now;
       lastFrameAtRef.current = now;
-      const dtMs = clamp(now - prev, TICK_TARGET_MS, 50);
+      const dtMs = clamp(now - prev, 0, 50);
 
       setSnapshot((state) => {
         if (state.status !== 'running') return state;
@@ -389,7 +389,7 @@ export default function ShellRunnersTestMode() {
           speedTween,
         } = updateScrollSpeed(state, dtMs);
         let playerX = state.playerX;
-        let score = state.score + scrollSpeed * 60 * dtSec;
+        let score = state.score + scrollSpeed * 45 * dtSec;
         let lives = state.lives;
         let hunger = state.hunger;
         let hungerTickMs = state.hungerTickMs + dtMs;
@@ -425,7 +425,7 @@ export default function ShellRunnersTestMode() {
         nextSpawnAtRef.current -= dtMs;
         if (nextSpawnAtRef.current <= 0) {
           entities = [...entities, makeEntity(nextEntityIdRef.current++, score, playerX)];
-          nextSpawnAtRef.current = Math.max(470, 900 - score * 0.055);
+          nextSpawnAtRef.current = Math.max(920, 1450 - score * 0.028);
         }
 
         const remove = new Set<string>();
@@ -577,12 +577,8 @@ export default function ShellRunnersTestMode() {
   }, [ensureMusic]);
 
   return (
-    <main className='shell-practice' onPointerDown={ensureMusic}>
+    <main className={`shell-practice ${focusMode ? 'is-focus' : ''}`} onPointerDown={ensureMusic}>
       <section className='shell-practice__hud' aria-label='Practice status'>
-        <div className='shell-practice__brand'>
-          <img src='/assets/img/logo.png' alt='ShellRunners' />
-          <span>Practice</span>
-        </div>
         <div className='shell-practice__stat'>
           <span>Score</span>
           <strong>{Math.floor(snapshot.score)}</strong>
@@ -625,6 +621,30 @@ export default function ShellRunnersTestMode() {
             </button>
           </div>
         )}
+
+        <div className='shell-practice__touch-controls' aria-label='In-game practice controls'>
+          <button
+            type='button'
+            onPointerDown={() => setControl('left', true)}
+            onPointerUp={() => setControl('left', false)}
+            onPointerLeave={() => setControl('left', false)}
+            onPointerCancel={() => setControl('left', false)}
+            aria-label='Move left'>
+            Left
+          </button>
+          <button type='button' onClick={startGame}>
+            {snapshot.status === 'running' ? 'Restart' : 'Start'}
+          </button>
+          <button
+            type='button'
+            onPointerDown={() => setControl('right', true)}
+            onPointerUp={() => setControl('right', false)}
+            onPointerLeave={() => setControl('right', false)}
+            onPointerCancel={() => setControl('right', false)}
+            aria-label='Move right'>
+            Right
+          </button>
+        </div>
       </section>
 
       <section className='shell-practice__controls' aria-label='Practice controls'>
@@ -652,6 +672,9 @@ export default function ShellRunnersTestMode() {
         <button type='button' onClick={toggleMusic}>
           Audio {musicEnabled ? 'On' : 'Off'}
         </button>
+        <button type='button' onClick={() => setFocusMode((enabled) => !enabled)}>
+          {focusMode ? 'Normal' : 'Full Screen'}
+        </button>
       </section>
 
       <style jsx>{`
@@ -674,7 +697,7 @@ export default function ShellRunnersTestMode() {
         }
 
         .shell-practice {
-          min-height: 100vh;
+          min-height: 100dvh;
           display: grid;
           grid-template-rows: auto minmax(0, 1fr) auto;
           gap: 10px;
@@ -694,6 +717,15 @@ export default function ShellRunnersTestMode() {
           overflow: hidden;
         }
 
+        .shell-practice.is-focus {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          min-height: 100dvh;
+          padding: 6px;
+          grid-template-rows: auto minmax(0, 1fr) auto;
+        }
+
         .shell-practice__hud,
         .shell-practice__controls {
           width: min(940px, 100%);
@@ -704,7 +736,6 @@ export default function ShellRunnersTestMode() {
           gap: 8px;
         }
 
-        .shell-practice__brand,
         .shell-practice__stat,
         .shell-practice__top-panel,
         .shell-practice__controls button,
@@ -715,32 +746,14 @@ export default function ShellRunnersTestMode() {
           backdrop-filter: blur(10px);
         }
 
-        .shell-practice__brand {
-          min-width: 0;
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          border-radius: 8px;
-          padding: 8px 12px;
-          text-transform: uppercase;
-          font-size: 12px;
-          font-weight: 800;
-          color: #aee9ff;
-        }
-
-        .shell-practice__brand img {
-          width: 112px;
-          height: auto;
-          object-fit: contain;
-        }
-
         .shell-practice__stat {
-          min-width: 86px;
+          min-width: 82px;
           border-radius: 8px;
-          padding: 8px 12px;
+          padding: 7px 10px;
           display: grid;
-          gap: 2px;
-          text-align: right;
+          gap: 3px;
+          text-align: center;
+          align-content: center;
         }
 
         .shell-practice__stat span {
@@ -751,20 +764,32 @@ export default function ShellRunnersTestMode() {
         }
 
         .shell-practice__stat strong {
-          font-size: 21px;
+          font-size: 18px;
           line-height: 1;
         }
 
         .shell-practice__track {
           position: relative;
           width: min(940px, 100%);
-          min-height: 500px;
+          min-height: min(500px, calc(100dvh - 150px));
+          height: min(62dvh, 560px);
           margin: 0 auto;
           overflow: hidden;
           border: 1px solid rgba(151, 221, 255, 0.2);
           border-radius: 8px;
           background: #07334c;
           box-shadow: inset 0 0 80px rgba(255, 255, 255, 0.08);
+        }
+
+        .shell-practice.is-focus .shell-practice__hud,
+        .shell-practice.is-focus .shell-practice__controls,
+        .shell-practice.is-focus .shell-practice__track {
+          width: 100%;
+        }
+
+        .shell-practice.is-focus .shell-practice__track {
+          height: auto;
+          min-height: 0;
         }
 
         .shell-practice__top-panel {
@@ -875,6 +900,7 @@ export default function ShellRunnersTestMode() {
         }
 
         .shell-practice__controls button,
+        .shell-practice__touch-controls button,
         .shell-practice__overlay button {
           min-width: 96px;
           border-radius: 8px;
@@ -886,6 +912,33 @@ export default function ShellRunnersTestMode() {
           user-select: none;
         }
 
+        .shell-practice__touch-controls {
+          position: absolute;
+          left: 16px;
+          right: 16px;
+          bottom: 14px;
+          z-index: 8;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          pointer-events: auto;
+          margin: 0 auto;
+          max-width: 440px;
+        }
+
+        .shell-practice__touch-controls button {
+          min-width: 0;
+          min-height: 42px;
+          padding: 9px 10px;
+          background: rgba(4, 18, 27, 0.84);
+          border-color: rgba(184, 232, 255, 0.38);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+        }
+
+        .shell-practice__controls button:nth-child(-n + 3) {
+          display: none;
+        }
+
         .shell-practice__overlay button {
           background: #e0b85f;
           border-color: rgba(255, 235, 179, 0.8);
@@ -893,49 +946,143 @@ export default function ShellRunnersTestMode() {
         }
 
         .shell-practice__controls button:active,
+        .shell-practice__touch-controls button:active,
         .shell-practice__overlay button:active {
           transform: translateY(1px);
         }
 
-        @media (max-width: 620px) {
+        @media (max-width: 760px) {
           .shell-practice {
-            padding: 8px;
-            gap: 8px;
+            padding: 6px;
+            gap: 6px;
+            grid-template-rows: auto minmax(0, 1fr) auto;
           }
 
           .shell-practice__hud {
             display: grid;
-            grid-template-columns: 1fr 76px 76px 76px;
-          }
-
-          .shell-practice__brand {
-            padding: 7px 8px;
-          }
-
-          .shell-practice__brand img {
-            width: 82px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+            width: 100%;
           }
 
           .shell-practice__stat {
             min-width: 0;
-            padding: 7px 8px;
+            min-height: 50px;
+            padding: 5px 6px;
+            align-content: center;
+          }
+
+          .shell-practice__stat span {
+            font-size: 9px;
           }
 
           .shell-practice__stat strong {
-            font-size: 17px;
+            font-size: 15px;
           }
 
           .shell-practice__track {
-            min-height: 420px;
+            height: auto;
+            min-height: 0;
           }
 
           .shell-practice__top-panel {
             grid-template-columns: 1fr;
             gap: 6px;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            padding: 8px;
+          }
+
+          .shell-practice__hunger {
+            font-size: 11px;
           }
 
           .shell-practice__boosts {
             justify-content: flex-start;
+          }
+
+          .shell-practice__boosts span {
+            padding: 3px 6px;
+            font-size: 10px;
+          }
+
+          .shell-practice__controls {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+          }
+
+          .shell-practice__controls button {
+            display: inline-flex;
+            min-width: 0;
+            width: min(150px, 48%);
+            padding: 9px 7px;
+            font-size: 12px;
+          }
+
+          .shell-practice__controls button:nth-child(-n + 3) {
+            display: none;
+          }
+
+          .shell-practice__touch-controls button {
+            min-height: 42px;
+            padding: 9px 8px;
+          }
+        }
+
+        @media (max-width: 920px) and (orientation: landscape) {
+          .shell-practice {
+            min-height: 100dvh;
+            padding: 6px;
+            gap: 6px;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+          }
+
+          .shell-practice__hud,
+          .shell-practice__controls,
+          .shell-practice__track {
+            width: 100%;
+          }
+
+          .shell-practice__hud {
+            display: grid;
+            grid-template-columns: minmax(130px, 1fr) repeat(3, 82px);
+            gap: 6px;
+          }
+
+          .shell-practice__stat {
+            min-width: 0;
+            padding: 5px 8px;
+          }
+
+          .shell-practice__stat span {
+            font-size: 10px;
+          }
+
+          .shell-practice__stat strong {
+            font-size: 16px;
+          }
+
+          .shell-practice__track {
+            height: auto;
+            min-height: 0;
+          }
+
+          .shell-practice__top-panel {
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            padding: 7px 8px;
+          }
+
+          .shell-practice__controls {
+            gap: 6px;
+          }
+
+          .shell-practice__controls button {
+            min-width: 78px;
+            padding: 9px 10px;
           }
         }
       `}</style>
