@@ -61,11 +61,12 @@ const HUNGER_INC = 5;
 const HUNGER_DEC = 45;
 const HUNGER_THRESHOLD_MS = 500;
 const COLLECTIBLE_SCORE_MULT = 100;
-const INIT_SCROLL_SPEED = 0.055;
-const MAX_SCROLL_SPEED = 0.38;
-const SPEED_INCREASE_THRESHOLD_MS = 24000;
-const SPEED_INCREASE = 0.018;
-const SPEED_INCREASE_TWEEN_MS = 6000;
+const SCORE_BASE_FPS = 60;
+const INIT_SCROLL_SPEED = 0.12;
+const MAX_SCROLL_SPEED = 0.75;
+const SPEED_INCREASE_THRESHOLD_MS = 12000;
+const SPEED_INCREASE = 0.035;
+const SPEED_INCREASE_TWEEN_MS = 4000;
 const GHOST_DURATION_MS = 1850;
 const INVINCIBLE_DURATION_MS = 5500;
 const MOVE_BOOST_DURATION_MS = 5000;
@@ -415,7 +416,7 @@ export default function ShellRunnersTestMode() {
           speedTween,
         } = updateScrollSpeed(state, dtMs);
         let playerX = state.playerX;
-        let score = state.score + scrollSpeed * 45 * dtSec;
+        let score = state.score + scrollSpeed * SCORE_BASE_FPS * dtSec;
         let lives = state.lives;
         let hunger = state.hunger;
         let hungerTickMs = state.hungerTickMs + dtMs;
