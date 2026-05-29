@@ -253,6 +253,7 @@ export default function ShellRunnersTestMode() {
   const [snapshot, setSnapshot] = useState<GameSnapshot>(() => createInitialSnapshot());
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
+  const [fullscreenActive, setFullscreenActive] = useState(false);
   const snapshotRef = useRef(snapshot);
   const pressedRef = useRef({ left: false, right: false });
   const nextEntityIdRef = useRef(5);
@@ -311,6 +312,31 @@ export default function ShellRunnersTestMode() {
       return next;
     });
   }, [ensureMusic, pauseMusic]);
+
+  const toggleFocusMode = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        setFocusMode(false);
+        return;
+      }
+      await document.documentElement.requestFullscreen();
+      setFocusMode(true);
+    } catch {
+      setFocusMode((enabled) => !enabled);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      const active = Boolean(document.fullscreenElement);
+      setFullscreenActive(active);
+      if (!active) setFocusMode(false);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    onFullscreenChange();
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
 
   const startGame = useCallback(() => {
     ensureMusic();
@@ -672,8 +698,8 @@ export default function ShellRunnersTestMode() {
         <button type='button' onClick={toggleMusic}>
           Audio {musicEnabled ? 'On' : 'Off'}
         </button>
-        <button type='button' onClick={() => setFocusMode((enabled) => !enabled)}>
-          {focusMode ? 'Normal' : 'Full Screen'}
+        <button type='button' onClick={toggleFocusMode}>
+          {focusMode || fullscreenActive ? 'Normal' : 'Full Screen'}
         </button>
       </section>
 
